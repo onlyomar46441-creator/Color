@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@MagmaStoreBot - بوت الربط</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .bot-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 2px solid #0088cc;
+        }
+
+        .bot-info h2 {
+            color: #0088cc;
+            margin-bottom: 15px;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            direction: ltr;
+            letter-spacing: 2px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .result {
+            padding: 20px;
+            background: #e6f7ff;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #155724;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #721c24;
+            color: #721c24;
+        }
+
+        .instructions {
+            text-align: right;
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 10px;
+            border-right: 4px solid #856404;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            padding-right: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fab fa-telegram"></i> @MagmaStoreBot</h1>
+        
+        <div class="bot-info">
+            <h2><i class="fas fa-robot"></i> بوت ربط الرسائل المجهولة</h2>
+            <p>أدخل رمز الربط الذي حصلت عليه من الموقع</p>
+        </div>
+        
+        <input type="text" id="codeInput" class="code-input" placeholder="أدخل الرمز هنا (مثال: AbC123DeF)" maxlength="20">
+        
+        <button id="linkBtn" class="btn">
+            <i class="fas fa-link"></i> ربط الرمز بحسابك
+        </button>
+        
+        <div id="resultMessage" class="result"></div>
+        
+        <div class="instructions">
+            <h3><i class="fas fa-info-circle"></i> طريقة الربط:</h3>
+            <ol>
+                <li>أنشئ رابط جديد من موقع الرسائل المجهولة</li>
+                <li>انسخ الرمز الذي يظهر لك</li>
+                <li>أدخل الرمز في الحقل أعلاه</li>
+                <li>اضغط على زر "ربط الرمز بحسابك"</li>
+                <li>سيتم ربط رمزك مع ID حسابك على تليجرام</li>
+                <li>عند وصول رسالة جديدة، ستصل إليك على تليجرام</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // ============ إعدادات التليجرام ============
+        const TELEGRAM_BOT_TOKEN = "8319256664:AAHw0suclrThu0X3dcdeoDT1LPwWRb59xR4";
+        const ADMIN_CHAT_ID = "6612813200";
+        const MAIN_SITE_URL = "https://onlyomar46441-creator.github.io/Color/index.html";
+        
+        // ============ توليد chat_id وهمي (في الواقع هذا سيكون chat_id الحقيقي للمستخدم) ============
+        // في التطبيق الحقيقي، هذا سيكون chat_id الخاص بالمستخدم من تليجرام
+        // لكننا على GitHub Pages، سنستخدم تخزين محلي للمحاكاة
+        
+        function generateChatId() {
+            // في الواقع، هذا سيكون chat_id الحقيقي من تليجرام
+            // هنا نستخدم تخزين محلي للمحاكاة
+            let chatId = localStorage.getItem('telegram_chat_id');
+            
+            if (!chatId) {
+                // إنشاء chat_id وهمي
+                chatId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('telegram_chat_id', chatId);
+            }
+            
+            return chatId;
+        }
+        
+        // ============ ربط الرمز ============
+        document.getElementById('linkBtn').addEventListener('click', async function() {
+            const codeInput = document.getElementById('codeInput');
+            const code = codeInput.value.trim();
+            const resultDiv = document.getElementById('resultMessage');
+            
+            if (!code || code.length < 8) {
+                showResult('error', 'الرجاء إدخال رمز صحيح (8 أحرف على الأقل)');
+                return;
+            }
+            
+            // الحصول على chat_id (وهمي في هذا المثال)
+            const chatId = generateChatId();
+            
+            try {
+                // إرسال طلب الربط للموقع الرئيسي عبر localStorage
+                const linkData = {
+                    code: code,
+                    chatId: chatId,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // حفظ في localStorage للموقع الرئيسي
+                localStorage.setItem('link_request', JSON.stringify(linkData));
+                
+                // إرسال إشعار للمسؤول على تليجرام
+                await sendTelegramNotification(
+                    `🔗 طلب ربط جديد!\n\n` +
+                    `🔐 الرمز: ${code}\n` +
+                    `👤 Chat ID: ${chatId}\n` +
+                    `🕒 الوقت: ${new Date().toLocaleString('ar-EG')}\n` +
+                    `🌐 المصدر: GitHub Pages Bot Interface`
+                );
+                
+                showResult('success', 
+                    `✅ تم ربط الرمز بنجاح!\n\n` +
+                    `🔐 الرمز: ${code}\n` +
+                    `👤 تم ربطه بحسابك\n\n` +
+                    `الآن عند وصول رسالة جديدة بهذا الرمز، ستصل إليك إشعارات.`
+                );
+                
+                // مسح الحقل
+                codeInput.value = '';
+                
+                // إعادة توجيه بعد 3 ثواني
+                setTimeout(() => {
+                    window.location.href = MAIN_SITE_URL;
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showResult('error', 'حدث خطأ في الربط. حاول مرة أخرى.');
+            }
+        });
+        
+        // ============ إرسال إشعارات التليجرام ============
+        async function sendTelegramNotification(text) {
+            try {
+                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: ADMIN_CHAT_ID,
+                        text: text,
+                        parse_mode: 'HTML'
+                    })
+                });
+                
+                const data = await response.json();
+                return data.ok;
+            } catch (error) {
+                console.error('Error sending notification:', error);
+                return false;
+            }
+        }
+        
+        // ============ عرض النتيجة ============
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('resultMessage');
+            resultDiv.className = 'result ' + type;
+            resultDiv.innerHTML = `
+                <h3><i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> 
+                ${type === 'success' ? 'تم بنجاح!' : 'خطأ!'}</h3>
+                <p>${message.replace(/\n/g, '<br>')}</p>
+            `;
+            resultDiv.style.display = 'block';
+            
+            // إخفاء النتيجة بعد 5 ثواني
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // ============ محاكاة استقبال chat_id من تليجرام ============
+        // في التطبيق الحقيقي، سيأتي chat_id من تليجرام
+        // هنا نستخدم localStorage لمحاكاة ذلك
+        
+        // تحميل chat_id المحفوظ عند فتح الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedChatId = localStorage.getItem('telegram_chat_id');
+            if (savedChatId) {
+                console.log('Chat ID موجود:', savedChatId);
+            }
+            
+            // التحقق من وجود طلب ربط في localStorage
+            const linkRequest = localStorage.getItem('link_request');
+            if (linkRequest) {
+                try {
+                    const request = JSON.parse(linkRequest);
+                    console.log('طلب ربط موجود:', request);
+                    
+                    // محاكاة إرسال طلب الربط للموقع الرئيسي
+                    if (window.opener && typeof window.opener.linkUser === 'function') {
+                        window.opener.linkUser(request.code, request.chatId);
+                    }
+                    
+                    // مسح الطلب بعد المعالجة
+                    localStorage.removeItem('link_request');
+                } catch (error) {
+                    console.error('Error processing link request:', error);
+                }
+            }
+        });
+        
+        // ============ السماح بدخول الرمز بحروف كبيرة فقط ============
+        document.getElementById('codeInput').addEventListener('input', function(e) {
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+    </script>
+</body>
+</html>
