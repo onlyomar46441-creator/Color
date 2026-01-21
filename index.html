@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رسائل مجهولة</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 12px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 0.8em;
+            margin-bottom: 5px;
+        }
+
+        .warning {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.7em;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        main {
+            padding: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f7fa;
+            border-radius: 8px;
+            padding: 3px;
+            margin-bottom: 12px;
+            gap: 3px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px 4px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            min-height: 35px;
+            justify-content: center;
+        }
+
+        .tab i {
+            font-size: 12px;
+        }
+
+        .tab.active {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            color: #667eea;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 12px;
+            border: 1px solid #eaeaea;
+        }
+
+        .card-header {
+            background: #f8f9fa;
+            padding: 10px;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .card-header h2 {
+            color: #333;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-body {
+            padding: 12px;
+        }
+
+        .btn {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .result-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 2px dashed #667eea;
+            display: none;
+        }
+
+        .link-container {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+            flex-direction: column;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            direction: ltr;
+            text-align: center;
+            background: white;
+        }
+
+        .code-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .code-display {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            direction: ltr;
+            word-break: break-all;
+        }
+
+        .instructions {
+            background: #e6f7ff;
+            padding: 8px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-right: 3px solid #0088cc;
+            font-size: 11px;
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-social {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 11px;
+        }
+
+        .whatsapp {
+            background: #25D366;
+        }
+
+        .telegram {
+            background: #0088cc;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .success-box, .error-box {
+            text-align: center;
+            padding: 20px 12px;
+            display: none;
+        }
+
+        .success-icon, .error-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .success-icon {
+            color: #25D366;
+        }
+
+        .error-icon {
+            color: #ff4757;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-top: 1px solid #eaeaea;
+            color: #666;
+            font-size: 11px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .page {
+            padding: 10px;
+        }
+
+        .inbox-messages {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .message-item {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            border: 1px solid #eaeaea;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .message-text {
+            font-size: 13px;
+        }
+
+        .empty-inbox {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .empty-inbox i {
+            font-size: 30px;
+            color: #ccc;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-secret"></i> رسائل مجهولة</h1>
+            <p class="subtitle">أنشئ رابط واستقبل رسائل مجهولة</p>
+            <p class="warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                أي رسائل مسيئة سوف تؤدي إلى إغلاق الرابط
+            </p>
+        </header>
+
+        <main>
+            <div class="tabs">
+                <div class="tab active" onclick="showPage('home')">
+                    <i class="fas fa-home"></i>
+                    <span>الرئيسية</span>
+                </div>
+                <div class="tab" onclick="showPage('send')" id="sendTab">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>إرسال</span>
+                </div>
+                <div class="tab" onclick="showPage('inbox')">
+                    <i class="fas fa-inbox"></i>
+                    <span>البريد</span>
+                </div>
+            </div>
+
+            <div id="homePage" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-link"></i> إنشاء رابطك</h2>
+                    </div>
+                    <div class="card-body">
+                        <p style="margin-bottom: 10px; color: #666; font-size: 11px;">
+                            <i class="fas fa-info-circle"></i> كل مستخدم لديه رابط واحد فقط
+                        </p>
+                        
+                        <button id="generateBtn" class="btn btn-primary">
+                            <i class="fas fa-plus-circle"></i> إنشاء رابط جديد
+                        </button>
+                        
+                        <div id="result" class="result-box">
+                            <h3 style="font-size: 13px; margin-bottom: 8px;">
+                                <i class="fas fa-check-circle"></i> تم إنشاء رابطك بنجاح!
+                            </h3>
+                            
+                            <div class="code-box">
+                                <p style="margin-bottom: 5px; font-size: 11px;">
+                                    <i class="fas fa-key"></i> رمز الربط:
+                                </p>
+                                <div class="code-display" id="generatedCode"></div>
+                                <p style="font-size: 11px; margin-top: 5px;">
+                                    أرسل هذا الرمز إلى <strong>@MagmaStoreBot</strong> على تليجرام
+                                </p>
+                            </div>
+                            
+                            <div class="link-container">
+                                <input type="text" id="generatedLink" readonly>
+                                <button id="copyBtn" class="btn btn-secondary">
+                                    <i class="fas fa-copy"></i> نسخ الرابط
+                                </button>
+                            </div>
+                            
+                            <div class="instructions">
+                                <h3 style="font-size: 12px; margin-bottom: 5px; color: #0088cc;">
+                                    <i class="fas fa-info-circle"></i> خطوات الربط:
+                                </h3>
+                                <p>1. انسخ الرابط وشاركه مع أصدقائك</p>
+                                <p>2. انسخ الرمز أعلاه</p>
+                                <p>3. ابحث عن <strong>@MagmaStoreBot</strong> في تليجرام</p>
+                                <p>4. أرسل الرمز للبوت لربط حسابك</p>
+                                <p>5. ستصل إشعارات الرسائل على تليجرام</p>
+                            </div>
+                            
+                            <div class="share-buttons">
+                                <button class="btn-social whatsapp" onclick="shareWhatsApp()">
+                                    <i class="fab fa-whatsapp"></i> واتساب
+                                </button>
+                                <button class="btn-social telegram" onclick="shareTelegram()">
+                                    <i class="fab fa-telegram"></i> تليجرام
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sendPage" class="page hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-paper-plane"></i> إرسال رسالة مجهولة</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="messageForm">
+                            <textarea 
+                                id="message" 
+                                placeholder="اكتب رسالتك هنا..." 
+                                maxlength="500"
+                            ></textarea>
+                            
+                            <button id="sendBtn" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> إرسال الرسالة
+                            </button>
+                        </div>
+
+                        <div id="successMessage" class="success-box">
+                            <div class="success-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3 style="margin-bottom: 5px; font-size: 15px;">تم الإرسال بنجاح!</h3>
+                            <p style="font-size: 13px;">رسالتك أرسلت بشكل مجهول</p>
+                            <button onclick="window.location.href = window.location.pathname" class="btn btn-secondary" style="margin-top: 10px;">
+                                <i class="fas fa-home"></i> العودة للرئيسية
+                            </button>
+                        </div>
+
+                        <div id="errorMessage" class="error-box">
+                            <div class="error-icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <h3 style="margin-bottom: 5px; font-size: 15px;">حدث خطأ!</h3>
+                            <p id="errorText"></p>
+                            <button onclick="showPage('home')" class="btn btn-secondary" style="margin-top: 10px;">
+                                العودة للرئيسية
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="inboxPage" class="page hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-inbox"></i> البريد الوارد</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="inboxList" class="inbox-messages">
+                            <!-- سيتم عرض الرسائل هنا -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>جميع الرسائل تتم بشكل مجهول تمامًا</p>
+            <p>سيتم إرسال إشعارات إلى المسؤول على تليجرام</p>
+        </footer>
+    </div>
+
+    <script>
+        // ============ إعدادات التليجرام ============
+        const TELEGRAM_BOT_TOKEN = "8319256664:AAHw0suclrThu0X3dcdeoDT1LPwWRb59xR4";
+        const TELEGRAM_CHAT_ID = "6612813200";
+        const BOT_URL = "https://onlyomar46441-creator.github.io/Color/bot.html";
+        
+        // ============ إدارة الصفحات ============
+        function showPage(pageName) {
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('sendPage').classList.add('hidden');
+            document.getElementById('inboxPage').classList.add('hidden');
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(pageName + 'Page').classList.remove('hidden');
+            
+            const pageIndex = { home: 0, send: 1, inbox: 2 }[pageName];
+            document.querySelectorAll('.tab')[pageIndex].classList.add('active');
+            
+            if (pageName === 'inbox') {
+                loadInboxMessages();
+            }
+        }
+        
+        // ============ توليد رمز عشوائي ============
+        function generateRandomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+            let code = '';
+            
+            // التأكد من وجود حرف واحد على الأقل
+            code += chars.charAt(Math.floor(Math.random() * 48));
+            
+            // إكمال باقي الرمز (8 أحرف وأرقام)
+            for (let i = 1; i < 8; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            
+            return code.split('').sort(() => Math.random() - 0.5).join('');
+        }
+        
+        // ============ إنشاء رابط جديد ============
+        async function createNewLink() {
+            try {
+                const generateBtn = document.getElementById('generateBtn');
+                generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإنشاء...';
+                generateBtn.disabled = true;
+                
+                const linkId = 'link_' + Date.now();
+                const randomCode = generateRandomCode();
+                const currentUrl = new URL(window.location);
+                const linkUrl = currentUrl.origin + currentUrl.pathname + '?link=' + linkId;
+                
+                // حفظ محلياً
+                const userLink = {
+                    id: linkId,
+                    url: linkUrl,
+                    code: randomCode,
+                    created: new Date().toISOString(),
+                    messages: [],
+                    linked: false
+                };
+                
+                localStorage.setItem('userLink', JSON.stringify(userLink));
+                
+                // إرسال إشعار للتليجرام
+                await sendTelegramNotification(
+                    `📌 رابط جديد تم إنشاؤه!\n\n` +
+                    `🔗 الرابط: ${linkUrl}\n` +
+                    `🔐 رمز الربط: ${randomCode}\n` +
+                    `🕒 الوقت: ${new Date().toLocaleString('ar-EG')}\n` +
+                    `📱 المستخدم: رابط جديد`
+                );
+                
+                // عرض الرابط والرمز
+                showGeneratedLink(linkUrl, randomCode);
+                
+                generateBtn.innerHTML = '<i class="fas fa-plus-circle"></i> إنشاء رابط جديد';
+                generateBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // إنشاء الرابط حتى لو فشل الإشعار
+                const linkId = 'link_' + Date.now();
+                const randomCode = generateRandomCode();
+                const currentUrl = new URL(window.location);
+                const linkUrl = currentUrl.origin + currentUrl.pathname + '?link=' + linkId;
+                
+                const userLink = {
+                    id: linkId,
+                    url: linkUrl,
+                    code: randomCode,
+                    created: new Date().toISOString(),
+                    messages: [],
+                    linked: false
+                };
+                
+                localStorage.setItem('userLink', JSON.stringify(userLink));
+                
+                showGeneratedLink(linkUrl, randomCode);
+                
+                const generateBtn = document.getElementById('generateBtn');
+                generateBtn.innerHTML = '<i class="fas fa-plus-circle"></i> إنشاء رابط جديد';
+                generateBtn.disabled = false;
+            }
+        }
+        
+        // ============ عرض الرابط والرمز ============
+        function showGeneratedLink(link, code) {
+            const resultDiv = document.getElementById('result');
+            const linkInput = document.getElementById('generatedLink');
+            const codeDisplay = document.getElementById('generatedCode');
+            
+            if (resultDiv && linkInput && codeDisplay) {
+                linkInput.value = link;
+                codeDisplay.textContent = code;
+                resultDiv.style.display = 'block';
+                
+                // نسخ الرابط تلقائيًا
+                setTimeout(() => copyToClipboard(link), 300);
+            }
+        }
+        
+        // ============ تحميل رسائل البريد ============
+        function loadInboxMessages() {
+            const inboxList = document.getElementById('inboxList');
+            if (!inboxList) return;
+            
+            try {
+                const userLink = JSON.parse(localStorage.getItem('userLink') || 'null');
+                
+                if (!userLink || !userLink.messages || userLink.messages.length === 0) {
+                    inboxList.innerHTML = `
+                        <div class="empty-inbox">
+                            <i class="fas fa-envelope-open"></i>
+                            <p>لا توجد رسائل واردة بعد</p>
+                            <p style="font-size: 11px; margin-top: 8px;">شارك رابطك لاستقبال الرسائل</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let messagesHtml = '';
+                
+                userLink.messages.forEach((msg) => {
+                    const time = new Date(msg.timestamp).toLocaleString('ar-EG');
+                    messagesHtml += `
+                        <div class="message-item">
+                            <div class="message-time">
+                                <i class="far fa-clock"></i>
+                                ${time}
+                            </div>
+                            <div class="message-text">${msg.text}</div>
+                        </div>
+                    `;
+                });
+                
+                inboxList.innerHTML = messagesHtml;
+                
+                // التمرير إلى أحدث رسالة
+                inboxList.scrollTop = inboxList.scrollHeight;
+            } catch (error) {
+                console.error('Error loading inbox:', error);
+                inboxList.innerHTML = '<p style="color: red; text-align: center; font-size: 11px;">حدث خطأ في تحميل الرسائل</p>';
+            }
+        }
+        
+        // ============ إرسال رسالة ============
+        async function sendMessageToLink(linkId, message) {
+            if (!linkId || !message || message.trim().length < 1) {
+                throw new Error('الرجاء كتابة رسالة');
+            }
+            
+            if (message.length > 500) {
+                throw new Error('الرسالة طويلة جدًا (الحد 500 حرف)');
+            }
+            
+            const cleanMessage = message.trim();
+            
+            try {
+                // البحث عن الرابط في localStorage
+                const userLink = JSON.parse(localStorage.getItem('userLink') || 'null');
+                let code = null;
+                
+                // إذا كان الرابط خاص بالمستخدم، نحصل على الكود
+                if (userLink && userLink.id === linkId) {
+                    code = userLink.code;
+                }
+                
+                // إرسال إشعار للتليجرام
+                const telegramMessage = `📩 رسالة جديدة وردت!\n\n` +
+                    `🔗 الرابط: ${window.location.origin + window.location.pathname + '?link=' + linkId}\n` +
+                    `✉️ الرسالة: ${cleanMessage}\n` +
+                    `🕒 الوقت: ${new Date().toLocaleString('ar-EG')}`;
+                
+                if (code) {
+                    telegramMessage += `\n🔐 رمز الربط: ${code}`;
+                }
+                
+                const success = await sendTelegramNotification(telegramMessage);
+                
+                // إذا كانت الرسالة لرابط المستخدم نفسه، احفظها في البريد
+                if (userLink && userLink.id === linkId) {
+                    if (!userLink.messages) userLink.messages = [];
+                    userLink.messages.push({
+                        text: cleanMessage,
+                        timestamp: new Date().toISOString()
+                    });
+                    localStorage.setItem('userLink', JSON.stringify(userLink));
+                    
+                    // إذا كان المستخدم مرتبطاً، أرسل له الرسالة أيضاً
+                    if (userLink.linked && userLink.chatId) {
+                        await sendMessageToUser(userLink.chatId, cleanMessage);
+                    }
+                }
+                
+                if (!success) {
+                    console.warn('فشل إرسال إشعار التليجرام');
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error:', error);
+                throw new Error('حدث خطأ في الإرسال');
+            }
+        }
+        
+        // ============ إرسال رسالة لمستخدم مرتبط ============
+        async function sendMessageToUser(chatId, message) {
+            try {
+                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: `📩 رسالة جديدة: ${message}`,
+                        parse_mode: 'HTML'
+                    })
+                });
+                
+                const data = await response.json();
+                return data.ok;
+            } catch (error) {
+                console.error('Error sending to user:', error);
+                return false;
+            }
+        }
+        
+        // ============ إرسال إشعارات التليجرام ============
+        async function sendTelegramNotification(text) {
+            if (!TELEGRAM_BOT_TOKEN) {
+                console.warn('لم يتم تعيين توكن البوت');
+                return false;
+            }
+            
+            try {
+                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: text,
+                        parse_mode: 'HTML'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.ok) {
+                    console.error('Error from Telegram:', data);
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error sending Telegram notification:', error);
+                return false;
+            }
+        }
+        
+        // ============ وظائف المساعدة ============
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('تم نسخ الرابط!');
+            }).catch(err => {
+                // طريقة بديلة للنسخ
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast('تم نسخ الرابط!');
+            });
+        }
+        
+        function showToast(message) {
+            const existingToast = document.getElementById('toast');
+            if (existingToast) existingToast.remove();
+            
+            const toast = document.createElement('div');
+            toast.id = 'toast';
+            toast.innerHTML = `
+                <div style="
+                    position: fixed;
+                    bottom: 15px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    z-index: 1000;
+                    font-size: 12px;
+                ">
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 1500);
+        }
+        
+        function shareWhatsApp() {
+            const linkInput = document.getElementById('generatedLink');
+            if (linkInput) {
+                const text = `أرسل لي رسالة مجهولة عبر هذا الرابط: ${linkInput.value}`;
+                const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank');
+            }
+        }
+        
+        function shareTelegram() {
+            const linkInput = document.getElementById('generatedLink');
+            if (linkInput) {
+                const text = `أرسل لي رسالة مجهولة عبر هذا الرابط: ${linkInput.value}`;
+                const url = `https://t.me/share/url?url=${encodeURIComponent(linkInput.value)}&text=${encodeURIComponent('أرسل لي رسالة مجهولة')}`;
+                window.open(url, '_blank');
+            }
+        }
+        
+        // ============ معالجة URL ============
+        function getLinkIdFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('link');
+        }
+        
+        // ============ تهيئة الصفحة ============
+        document.addEventListener('DOMContentLoaded', function() {
+            const linkId = getLinkIdFromURL();
+            
+            if (linkId) {
+                // هذا رابط لاستقبال رسائل
+                showPage('send');
+                document.getElementById('sendTab').innerHTML = '<i class="fas fa-paper-plane"></i> إرسال رسالة';
+            } else {
+                // الصفحة الرئيسية لإنشاء الرابط
+                showPage('home');
+                
+                // تحميل الرابط إذا كان موجوداً
+                const userLink = JSON.parse(localStorage.getItem('userLink') || 'null');
+                if (userLink && userLink.url) {
+                    showGeneratedLink(userLink.url, userLink.code || '');
+                }
+            }
+            
+            // زر إنشاء رابط جديد
+            const generateBtn = document.getElementById('generateBtn');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', createNewLink);
+            }
+            
+            // زر نسخ الرابط
+            const copyBtn = document.getElementById('copyBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const linkInput = document.getElementById('generatedLink');
+                    if (linkInput) {
+                        copyToClipboard(linkInput.value);
+                    }
+                });
+            }
+            
+            // زر إرسال الرسالة
+            const sendBtn = document.getElementById('sendBtn');
+            if (sendBtn) {
+                sendBtn.addEventListener('click', async function() {
+                    const message = document.getElementById('message').value.trim();
+                    const linkId = getLinkIdFromURL();
+                    
+                    if (!message) {
+                        alert('الرجاء كتابة رسالة');
+                        return;
+                    }
+                    
+                    if (!linkId) {
+                        showError('الرابط غير صالح');
+                        return;
+                    }
+                    
+                    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+                    sendBtn.disabled = true;
+                    
+                    try {
+                        const success = await sendMessageToLink(linkId, message);
+                        
+                        if (success) {
+                            document.getElementById('messageForm').style.display = 'none';
+                            document.getElementById('successMessage').style.display = 'block';
+                        } else {
+                            throw new Error('حدث خطأ في الإرسال');
+                        }
+                    } catch (error) {
+                        showError(error.message);
+                        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال الرسالة';
+                        sendBtn.disabled = false;
+                    }
+                });
+            }
+        });
+        
+        function showError(message) {
+            document.getElementById('messageForm').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('errorText').textContent = message;
+        }
+        
+        // ============ ربط الكود بـ chat_id ============
+        // هذه الوظيفة تستدعى من صفحة البوت
+        window.linkUser = function(code, chatId) {
+            try {
+                const userLink = JSON.parse(localStorage.getItem('userLink') || 'null');
+                
+                if (userLink && userLink.code === code) {
+                    userLink.linked = true;
+                    userLink.chatId = chatId;
+                    localStorage.setItem('userLink', JSON.stringify(userLink));
+                    
+                    // إرسال إشعار للمسؤول
+                    sendTelegramNotification(
+                        `✅ تم ربط رمز!\n\n` +
+                        `🔐 الرمز: ${code}\n` +
+                        `👤 Chat ID: ${chatId}\n` +
+                        `🔗 الرابط: ${userLink.url}`
+                    );
+                    
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error linking user:', error);
+                return false;
+            }
+        };
+    </script>
+</body>
+</html>
