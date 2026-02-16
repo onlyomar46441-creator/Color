@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Ping the wispbyte URL
         run: |
-          curl -I http://194.164.194.118:12146   # غيّر هذا الرابط
+          curl -I http://194.164.194.118:12146/   # غيّر هذا الرابط
