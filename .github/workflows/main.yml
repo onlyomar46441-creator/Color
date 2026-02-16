@@ -1,0 +1,15 @@
+name: إبقاء Wispbyte نشطًا
+
+on:
+  schedule:
+    # تشغيل كل 10 دقائق
+    - cron: '*/10 * * * *'
+  workflow_dispatch:   # يتيح لك تشغيله يدوياً
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the wispbyte URL
+        run: |
+          curl -I http://194.164.194.118:12146   # غيّر هذا الرابط
