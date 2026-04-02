@@ -367,25 +367,25 @@
         let isAnonymous = false;
         let heartbeatInterval = null;
 
-        const adminAvatar = 'images/admin.jpeg';
+        const adminAvatar = 'admin.jpeg';
         const animeAvatars = [
-            'images/anime1.jpeg',
-            'images/anime2.jpeg',
-            'images/anime3.jpeg',
-            'images/anime4.jpeg',
-            'images/anime5.jpeg',
-            'images/anime6.jpeg',
-            'images/anime7.jpeg',
-            'images/anime8.jpeg',
-            'images/anime9.jpeg',
-            'images/anime10.jpeg'
+            'anime1.jpeg',
+            'anime2.jpeg',
+            'anime3.jpeg',
+            'anime4.jpeg',
+            'anime5.jpeg',
+            'anime6.jpeg',
+            'anime7.jpeg',
+            'anime8.jpeg',
+            'anime9.jpeg',
+            'anime10.jpeg'
         ];
-        const cuteAvatars = [
-            'images/logo1.jpeg',
-            'images/logo2.jpeg',
-            'images/logo3.jpeg',
-            'images/logo4.jpeg',
-            'images/logo5.jpeg'
+        const logoAvatars = [
+            'logo1.jpeg',
+            'logo2.jpeg',
+            'logo3.jpeg',
+            'logo4.jpeg',
+            'logo5.jpeg'
         ];
         
         let selectedRegisterAvatar = null;
@@ -847,7 +847,7 @@
             if (showAnime) {
                 html += '<div class="avatar-category"><h4>Anime</h4><div class="avatar-grid" id="animeGrid"></div></div>';
             }
-            html += '<div class="avatar-category"><h4>Logo</h4><div class="avatar-grid" id="cuteGrid"></div></div>';
+            html += '<div class="avatar-category"><h4>Logo</h4><div class="avatar-grid" id="logoGrid"></div></div>';
             modalContent.innerHTML = html;
             
             if (showAnime) {
@@ -861,20 +861,20 @@
                 });
             }
             
-            const cuteGrid = document.getElementById('cuteGrid');
+            const logoGrid = document.getElementById('logoGrid');
             if (currentUser === 'admin') {
                 const adminDiv = document.createElement('div');
                 adminDiv.className = 'avatar-option';
                 adminDiv.innerHTML = `<img src="${adminAvatar}" alt="Admin" style="border:2px solid gold;">`;
                 adminDiv.onclick = () => { onSelect(adminAvatar); closeModal('avatarModal'); };
-                cuteGrid.appendChild(adminDiv);
+                logoGrid.appendChild(adminDiv);
             }
-            cuteAvatars.forEach(url => {
+            logoAvatars.forEach(url => {
                 const div = document.createElement('div');
                 div.className = 'avatar-option';
                 div.innerHTML = `<img src="${url}" alt="avatar">`;
                 div.onclick = () => { onSelect(url); closeModal('avatarModal'); };
-                cuteGrid.appendChild(div);
+                logoGrid.appendChild(div);
             });
             document.getElementById('removeAvatarBtn').onclick = () => { onSelect(null); closeModal('avatarModal'); };
             openModal('avatarModal');
@@ -1040,7 +1040,7 @@
             }, 2000);
 
             const registerAvatarGrid = document.getElementById('registerAvatarGrid');
-            cuteAvatars.forEach(url => {
+            logoAvatars.forEach(url => {
                 const div = document.createElement('div');
                 div.className = 'avatar-option';
                 div.innerHTML = `<img src="${url}" alt="logo">`;
@@ -1053,7 +1053,7 @@
             });
             if (registerAvatarGrid.firstChild) {
                 registerAvatarGrid.firstChild.classList.add('selected');
-                selectedRegisterAvatar = cuteAvatars[0];
+                selectedRegisterAvatar = logoAvatars[0];
             }
 
             let savedUsers = JSON.parse(localStorage.getItem('s46441_saved_users') || '[]');
@@ -1265,4 +1265,4 @@
         }
     </script>
 </body>
-                </html>
+    </html>
