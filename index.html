@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+
         :root {
             --whatsapp-green: #00a884;
             --whatsapp-green-dark: #005c4b;
@@ -298,6 +299,7 @@
             <div class="message-input-container" id="messageInputContainer" style="display: none;"><div class="input-wrapper"><textarea class="message-input" id="messageInput" rows="1" placeholder="اكتب رسالة..."></textarea><button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button></div></div>
         </div>
     </div>
+
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -327,13 +329,10 @@
                 <div>
                     <input type="checkbox" id="autoLoginCheckbox"> <label for="autoLoginCheckbox">تفعيل تسجيل الدخول التلقائي عند فتح الموقع</label>
                 </div>
-                <small style="color:#667781;">إذا قمت بتفعيل هذا الخيار، سيتم تسجيل دخولك تلقائياً في الزيارات القادمة (طالما أنك لم تسجل الخروج).</small>
-            </div>
+                <small style="color:#667781;">إذا قمت بتفعيل هذا الخيار، سيتم تسجيل دخولك تلقائياً في الزيارات القادمة (طالما أنك لم تسجل الخروج).</small>                       </div>
         </div>
-    </div>
-
-    <div class="modal" id="adminModal">
-        <div class="modal-content">
+    </div>                                                                        
+    <div class="modal" id="adminModal">                                                   <div class="modal-content">
             <div class="modal-header">
                 <h3>لوحة تحكم المدير</h3>
                 <button class="close-modal" onclick="closeModal('adminModal')">&times;</button>
@@ -347,188 +346,154 @@
             <div class="modal-header">
                 <h3>اختر صورة للحساب</h3>
                 <button class="close-modal" onclick="closeModal('avatarModal')">&times;</button>
-            </div>
-            <div id="avatarModalContent"></div>
+            </div>                                                                            <div id="avatarModalContent"></div>
             <button class="btn btn-secondary" id="removeAvatarBtn" style="margin-top:15px;">إزالة الصورة (استخدام الحرف الأول)</button>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        // Supabase Configuration
+                                                                                      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>                                                                              // Supabase Configuration
         const SUPABASE_URL = 'https://tpfmxzfimxenyifjnqea.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwZm14emZpbXhlbnlpZmpucWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyODE3MjAsImV4cCI6MjA4Njg1NzcyMH0.2lbDbkENuOayRS4cMjT4NecfThHVFSU_4J4vo9tg-ek';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+                                                                                          let supabase;
+        try {                                                                                 supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (e) {
+            console.error("Supabase init error:", e);
+        }                                                                         
         const TELEGRAM_BOT_TOKEN = '8303502446:AAFasC-m3cx8dFAcDQ75BOHYv9CwRVaGYmo';
         const TELEGRAM_CHAT_ID = '6612813200';
         const OMAR_BOT_TOKEN = '8745001715:AAGNwS60poGSheTgPtEUIvqxY6Q7QuO6lEs';
-        const OMAR_CHAT_ID = '8122403206';
-
+        const OMAR_CHAT_ID = '8122403206';                                        
         let users = [];
-        let currentUser = null;
-        let currentChatPartner = null;
+        let currentUser = null;                                                           let currentChatPartner = null;
         let isAdmin = false;
         let isAnonymous = false;
-        let heartbeatInterval = null;
-
-        const adminAvatar = 'images/admin.jpeg';
-        const animeAvatars = [
+        let heartbeatInterval = null;                                             
+        const adminAvatar = 'images/admin.jpeg';                                          const animeAvatars = [
             'images/anime1.jpeg', 'images/anime2.jpeg', 'images/anime3.jpeg', 'images/anime4.jpeg',
             'images/anime5.jpeg', 'images/anime6.jpeg', 'images/anime7.jpeg', 'images/anime8.jpeg',
-            'images/anime9.jpeg', 'images/anime10.jpeg'
-        ];
-        const logoAvatars = [
-            'images/logo1.jpeg', 'images/logo2.jpeg', 'images/logo3.jpeg', 'images/logo4.jpeg', 'images/logo5.jpeg'
+            'images/anime9.jpeg', 'images/anime10.jpeg'                                   ];
+        const logoAvatars = [                                                                 'images/logo1.jpeg', 'images/logo2.jpeg', 'images/logo3.jpeg', 'images/logo4.jpeg', 'images/logo5.jpeg'
         ];
 
-        let selectedRegisterAvatar = null;
-        let autoLoginEnabled = false;
+        let selectedRegisterAvatar = logoAvatars[0];
+        let autoLoginEnabled = false;                                             
+        // --- Supabase Database Functions ---                                    
+        async function fetchUsers() {                                                         try {
+                const { data, error } = await supabase.from('profiles').select('*');
+                if (error) throw error;                                                           users = data || [];
+            } catch (e) {                                                                         console.error('Error fetching users:', e);
+                showNotification("Database Error: Profiles table might be missing.");
+            }
+            return users;                                                                 }
 
-        // --- Supabase Database Functions ---
-
-        async function fetchUsers() {
-            const { data, error } = await supabase.from('profiles').select('*');
-            if (error) console.error('Error fetching users:', error);
-            else users = data || [];
-            return users;
-        }
-
-        async function fetchMessages(user1, user2) {
-            const { data, error } = await supabase
-                .from('messages')
-                .select('*')
-                .or(`and(sender.eq.${user1},receiver.eq.${user2}),and(sender.eq.${user2},receiver.eq.${user1})`)
-                .order('created_at', { ascending: true });
-            if (error) return [];
-            return data || [];
-        }
+        async function fetchMessages(user1, user2) {                                          try {
+                const { data, error } = await supabase                                                .from('messages')
+                    .select('*')
+                    .or(`and(sender.eq."${user1}",receiver.eq."${user2}"),and(sender.eq."${user2}",receiver.eq."${user1}")`)
+                    .order('created_at', { ascending: true });                                    if (error) throw error;
+                return data || [];                                                            } catch (e) {
+                console.error('Error fetching messages:', e);                                     return [];                                                                    }                                                                             }
 
         async function saveMessageToCloud(sender, receiver, content) {
-            await supabase.from('messages').insert([{ sender, receiver, content }]);
+            try {                                                                                 const { error } = await supabase.from('messages').insert([{ sender, receiver, content }]);                                                                          if (error) throw error;
+            } catch (e) {
+                console.error('Error saving message:', e);                                        showNotification("Failed to send message to cloud.");
+            }
         }
 
-        function setupRealtimeMessages() {
-            supabase
-                .channel('public:messages')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-                    const newMsg = payload.new;
-                    if ((newMsg.sender === currentUser && newMsg.receiver === currentChatPartner) ||
-                        (newMsg.sender === currentChatPartner && newMsg.receiver === currentUser)) {
-                        appendMessage(newMsg);
-                    }
-                    if (newMsg.receiver === currentUser && newMsg.sender !== currentChatPartner) {
-                        showNotification(`New message from ${newMsg.sender}`);
-                        renderContacts();
-                    }
-                })
-                .subscribe();
-        }
-
-        // --- Helper Functions ---
-        function textToBinary(text) { return text.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' '); }
-        function binaryToText(binary) { return binary.split(' ').map(b => String.fromCharCode(parseInt(b, 2))).join(''); }
-
-        function renderAvatar(avatarUrl, username, containerElement) {
-            containerElement.innerHTML = '';
-            if (avatarUrl && avatarUrl.trim() !== '') {
-                const img = document.createElement('img');
-                img.src = avatarUrl;
+        function setupRealtimeMessages() {                                                    try {
+                supabase
+                    .channel('public:messages')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                        const newMsg = payload.new;
+                        if ((newMsg.sender === currentUser && newMsg.receiver === currentChatPartner) ||
+                            (newMsg.sender === currentChatPartner && newMsg.receiver === currentUser)) {
+                            appendMessage(newMsg);
+                        }
+                        if (newMsg.receiver === currentUser && newMsg.sender !== currentChatPartner) {
+                            showNotification(`New message from ${newMsg.sender}`);
+                            fetchUsers().then(renderContacts);                                            }
+                    })
+                    .subscribe();
+            } catch (e) {                                                                         console.error("Realtime subscription error:", e);
+            }                                                                             }
+                                                                                          // --- Helper Functions ---
+        function textToBinary(text) { return text.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' '); }                                             function binaryToText(binary) { return binary.split(' ').map(b => String.fromCharCode(parseInt(b, 2))).join(''); }                                          
+        function renderAvatar(avatarUrl, username, containerElement) {                        if (!containerElement) return;
+            containerElement.innerHTML = '';                                                  if (avatarUrl && avatarUrl.trim() !== '') {
+                const img = document.createElement('img');                                        img.src = avatarUrl;
                 img.className = 'avatar-img';
                 img.alt = username;
                 img.onerror = () => renderFallbackAvatar(username, containerElement);
-                containerElement.appendChild(img);
-            } else {
+                containerElement.appendChild(img);                                            } else {
                 renderFallbackAvatar(username, containerElement);
             }
         }
 
         function renderFallbackAvatar(username, containerElement) {
             const fallback = document.createElement('div');
-            fallback.className = 'avatar-fallback';
-            fallback.textContent = username.charAt(0).toUpperCase();
-            const colors = ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7'];
-            fallback.style.background = colors[username.charCodeAt(0) % colors.length];
-            containerElement.innerHTML = '';
-            containerElement.appendChild(fallback);
+            fallback.className = 'avatar-fallback';                                           fallback.textContent = (username || '?').charAt(0).toUpperCase();                 const colors = ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7'];
+            fallback.style.background = colors[(username || '').charCodeAt(0) % colors.length || 0];
+            containerElement.innerHTML = '';                                                  containerElement.appendChild(fallback);
         }
-
-        async function sendTelegramMessage(text, isForOmar = false) {
+                                                                                          async function sendTelegramMessage(text, isForOmar = false) {
             const token = isForOmar ? OMAR_BOT_TOKEN : TELEGRAM_BOT_TOKEN;
             const chat_id = isForOmar ? OMAR_CHAT_ID : TELEGRAM_CHAT_ID;
             try {
-                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                    method: 'POST',
+                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chat_id, text })
-                });
-            } catch (e) { console.error('Telegram error:', e); }
-        }
-
-        async function setUserOnlineStatus(online, reason = null) {
-            if (!currentUser || isAnonymous) return;
-            await supabase.from('profiles').update({ online, last_seen: new Date().toISOString() }).eq('username', currentUser);
-            sendTelegramMessage(`👤 User: ${currentUser}\n📡 Status: ${online ? 'online' : (reason || 'offline')}`);
-        }
-
-        function startHeartbeat() {
-            if (heartbeatInterval) clearInterval(heartbeatInterval);
-            heartbeatInterval = setInterval(() => { if (currentUser && !isAnonymous) setUserOnlineStatus(true, 'heartbeat'); }, 30000);
-        }
-
-        function getUserDisplayStatus(username) {
+                });                                                                           } catch (e) { console.error('Telegram error:', e); }
+        }                                                                         
+        async function setUserOnlineStatus(online, reason = null) {                           if (!currentUser || isAnonymous) return;
+            try {
+                await supabase.from('profiles').update({ online, last_seen: new Date().toISOString() }).eq('username', currentUser);
+                sendTelegramMessage(`👤 User: ${currentUser}\n📡 Status: ${online ? 'online' : (reason || 'offline')}`);
+            } catch (e) { console.error("Status update error:", e); }                     }
+                                                                                          function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);                          heartbeatInterval = setInterval(() => { if (currentUser && !isAnonymous) setUserOnlineStatus(true, 'heartbeat'); }, 30000);                                     }
+                                                                                          function getUserDisplayStatus(username) {
             const user = users.find(u => u.username === username);
-            if (!user) return 'Offline';
-            if (user.online) return '🟢 Online';
-            return user.last_seen ? `⚫ Last seen ${new Date(user.last_seen).toLocaleTimeString()}` : '⚫ Offline';
+            if (!user) return 'Offline';                                                      if (user.online) return '🟢 Online';
+            return user.last_seen ? `⚫ ${new Date(user.last_seen).toLocaleTimeString()}` : '⚫ Offline';
         }
+                                                                                          function showNotification(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.innerHTML = `<i class="fas fa-info-circle"></i> ${msg}`;                    document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);                                       }
+                                                                                          // --- Core UI Logic ---                                                  
+        async function loginOrRegister(username, password, isRegister = false, avatarUrl = null) {                                                                              const passwordBinary = textToBinary(password);
+            await fetchUsers();                                                               const existing = users.find(u => u.username === username);
 
-        // --- Core UI Logic ---
-
-        async function loginOrRegister(username, password, isRegister = false, avatarUrl = null) {
-            const passwordBinary = textToBinary(password);
-            await fetchUsers();
-            const existing = users.find(u => u.username === username);
-
-            if (existing) {
-                if (isRegister) throw new Error('Username taken');
-                if (existing.password_binary !== passwordBinary) throw new Error('Wrong password');
-                currentUser = username;
-            } else {
-                if (!isRegister) throw new Error('User not found');
+            if (existing) {                                                                       if (isRegister) throw new Error('Username taken');                                if (existing.password_binary !== passwordBinary) throw new Error('Wrong password');                                                                                 currentUser = username;
+            } else {                                                                              if (!isRegister) throw new Error('User not found');
                 const { error } = await supabase.from('profiles').insert([{
                     username, password_binary: passwordBinary, avatar_url: avatarUrl,
                     is_admin: (username === 'admin'), online: true, last_seen: new Date().toISOString()
                 }]);
-                if (error) throw new Error('Database error');
+                if (error) throw new Error('Database error: check if profiles table exists.');
                 currentUser = username;
             }
             isAdmin = (currentUser === 'admin');
             isAnonymous = false;
-            await setUserOnlineStatus(true);
-            startHeartbeat();
+            await setUserOnlineStatus(true);                                                  startHeartbeat();
             return true;
-        }
-
+        }                                                                         
         async function loadChat(partner) {
             currentChatPartner = partner;
-            const partnerUser = users.find(u => u.username === partner);
-            document.getElementById('chatPartnerName').innerText = partner;
-            renderAvatar(partnerUser ? partnerUser.avatar_url : null, partner, document.getElementById('chatPartnerAvatarContainer'));
-
+            const partnerUser = users.find(u => u.username === partner);                      document.getElementById('chatPartnerName').innerText = partner;
+            renderAvatar(partnerUser ? partnerUser.avatar_url : null, partner, document.getElementById('chatPartnerAvatarContainer'));                              
             document.getElementById('welcomeChat').style.display = 'none';
             document.getElementById('chatHeader').style.display = 'flex';
             document.getElementById('messagesContainer').style.display = 'flex';
             document.getElementById('messageInputContainer').style.display = 'block';
-
-            const msgs = await fetchMessages(currentUser, partner);
+                                                                                              const msgs = await fetchMessages(currentUser, partner);
             const container = document.getElementById('messagesContainer');
-            container.innerHTML = '';
-            msgs.forEach(appendMessage);
+            container.innerHTML = '';                                                         msgs.forEach(appendMessage);
             container.scrollTop = container.scrollHeight;
 
-            if (window.innerWidth <= 800) document.getElementById('sidebar').classList.add('hidden');
-        }
+            if (window.innerWidth <= 800) document.getElementById('sidebar').classList.add('hidden');                                                                       }
 
         function appendMessage(msg) {
             const container = document.getElementById('messagesContainer');
@@ -546,6 +511,7 @@
 
         function renderContacts() {
             const container = document.getElementById('contactsContainer');
+            if (!container) return;
             container.innerHTML = '';
             users.filter(u => u.username !== currentUser).forEach(u => {
                 const div = document.createElement('div');
@@ -557,78 +523,86 @@
                     </div>
                 `;
                 renderAvatar(u.avatar_url, u.username, div.querySelector('.contact-avatar'));
-                div.onclick = () => loadChat(u.username);
-                container.appendChild(div);
+                div.onclick = () => loadChat(u.username);                                         container.appendChild(div);
             });
         }
 
-        function initUI() {
-            const user = users.find(u => u.username === currentUser);
-            document.getElementById('currentUserName').innerText = currentUser;
-            renderAvatar(user ? user.avatar_url : null, currentUser, document.getElementById('currentUserAvatarContainer'));
+        function initUI() {                                                                   const user = users.find(u => u.username === currentUser);
+            document.getElementById('currentUserName').innerText = currentUser;               renderAvatar(user ? user.avatar_url : null, currentUser, document.getElementById('currentUserAvatarContainer'));
             renderContacts();
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'flex';
+            document.getElementById('loginContainer').style.display = 'none';                 document.getElementById('appContainer').style.display = 'flex';
         }
 
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            await fetchUsers();
-            setupRealtimeMessages();
-
-            setTimeout(() => {
-                document.getElementById('welcomeScreen').classList.add('hidden');
-                document.getElementById('loginContainer').classList.add('active');
+        // --- Event Listeners ---                                                        document.addEventListener('DOMContentLoaded', async () => {
+            // First, ensure the welcome screen goes away no matter what                      setTimeout(() => {
+                const welcome = document.getElementById('welcomeScreen');
+                const login = document.getElementById('loginContainer');
+                if (welcome) welcome.classList.add('hidden');
+                if (login) login.classList.add('active');
             }, 2000);
 
-            // Populate Avatars
+            // Then try to connect to the database                                            try {
+                await fetchUsers();
+                setupRealtimeMessages();
+            } catch (e) {
+                console.error("Initialization error:", e);                                    }
+                                                                                              // Populate Avatar selection grid
             const grid = document.getElementById('registerAvatarGrid');
-            logoAvatars.forEach(url => {
-                const div = document.createElement('div');
-                div.className = 'avatar-option';
-                div.innerHTML = `<img src="${url}">`;
-                div.onclick = () => {
-                    document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
-                    div.classList.add('selected');
-                    selectedRegisterAvatar = url;
+            if (grid) {
+                logoAvatars.forEach(url => {
+                    const div = document.createElement('div');                                        div.className = 'avatar-option';
+                    div.innerHTML = `<img src="${url}">`;                                             div.onclick = () => {
+                        document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));                                                                           div.classList.add('selected');
+                        selectedRegisterAvatar = url;
+                    };
+                    grid.appendChild(div);
+                });                                                                           }
+
+            // Handle Login
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) {                                                                       loginBtn.onclick = async () => {
+                    const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+                    const p = document.getElementById('loginPassword').value;
+                    if (!u || !p) return showNotification("Enter username and password");
+                    try {
+                        if (await loginOrRegister(u, p)) initUI();
+                    } catch(e) { showNotification(e.message); }                                   };
+            }
+
+            // Handle Register
+            const regBtn = document.getElementById('registerBtn');
+            if (regBtn) {
+                regBtn.onclick = async () => {
+                    const u = document.getElementById('registerUsername').value.trim().toLowerCase();
+                    const p = document.getElementById('registerPassword').value;                      const cp = document.getElementById('registerConfirmPassword').value;                                                                                                if (p !== cp) return showNotification("Passwords don't match");
+                    try {                                                                                 if (await loginOrRegister(u, p, true, selectedRegisterAvatar)) initUI();                                                                                        } catch(e) { showNotification(e.message); }
                 };
-                grid.appendChild(div);
-            });
+            }
 
-            document.getElementById('loginBtn').onclick = async () => {
-                const u = document.getElementById('loginUsername').value.trim().toLowerCase();
-                const p = document.getElementById('loginPassword').value;
-                try {
-                    if (await loginOrRegister(u, p)) initUI();
-                } catch(e) { alert(e.message); }
-            };
+            // Handle Send Message
+            const sendBtn = document.getElementById('sendBtn');
+            if (sendBtn) {                                                                        sendBtn.onclick = async () => {                                                       const content = document.getElementById('messageInput').value.trim();
+                    if (content && currentChatPartner) {                                                  await saveMessageToCloud(currentUser, currentChatPartner, content);
+                        document.getElementById('messageInput').value = '';                           }
+                };
+            }
 
-            document.getElementById('registerBtn').onclick = async () => {
-                const u = document.getElementById('registerUsername').value.trim().toLowerCase();
-                const p = document.getElementById('registerPassword').value;
-                try {
-                    if (await loginOrRegister(u, p, true, selectedRegisterAvatar)) initUI();
-                } catch(e) { alert(e.message); }
-            };
-
-            document.getElementById('sendBtn').onclick = async () => {
-                const content = document.getElementById('messageInput').value.trim();
-                if (content && currentChatPartner) {
-                    await saveMessageToCloud(currentUser, currentChatPartner, content);
-                    document.getElementById('messageInput').value = '';
-                }
-            };
-
-            document.getElementById('logoutBtn').onclick = () => location.reload();
-            document.getElementById('backBtn').onclick = () => document.getElementById('sidebar').classList.remove('hidden');
+            // Other buttons
+            if (document.getElementById('logoutBtn')) document.getElementById('logoutBtn').onclick = () => location.reload();
+            if (document.getElementById('backBtn')) document.getElementById('backBtn').onclick = () => document.getElementById('sidebar').classList.remove('hidden');                                                                                             if (document.getElementById('anonymousBtn')) {                                        document.getElementById('anonymousBtn').onclick = () => {                             currentUser = "Guest_" + Math.floor(Math.random()*1000);
+                    isAnonymous = true;
+                    initUI();
+                };
+            }
         });
 
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function closeModal(id) {
+            const m = document.getElementById(id);                                            if (m) m.classList.remove('active');
+        }
         function togglePassword(id) {
             const f = document.getElementById(id);
-            f.type = f.type === 'password' ? 'text' : 'password';
-        }
-    </script>
+            if (f) f.type = f.type === 'password' ? 'text' : 'password';                  }
+    </script>                                                                     
 
 </body>
 </html>
